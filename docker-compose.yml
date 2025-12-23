@@ -1,0 +1,24 @@
+version: '3.8'
+
+services:
+  spotify-queue:
+    build: .
+    container_name: spotify-queue-app
+    ports:
+      - "3000:3000"  # Public guest UI
+      - "3001:3001"  # Admin panel
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      - ADMIN_PORT=3001
+      - CLIENT_URL=${CLIENT_URL:-http://localhost:3000}
+      - ADMIN_CLIENT_URL=${ADMIN_CLIENT_URL:-http://localhost:3001}
+      - SPOTIFY_CLIENT_ID=${SPOTIFY_CLIENT_ID}
+      - SPOTIFY_CLIENT_SECRET=${SPOTIFY_CLIENT_SECRET}
+      - SPOTIFY_REFRESH_TOKEN=${SPOTIFY_REFRESH_TOKEN}
+      - SPOTIFY_USER_ID=${SPOTIFY_USER_ID}
+      - DB_PATH=/app/data/queue.db
+    volumes:
+      - ./data:/app/data
+    restart: unless-stopped
+
