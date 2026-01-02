@@ -62,12 +62,16 @@
   font-size: 1rem;
   margin-left: 10px;
   width: 200px;
+  min-height: 36px;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .config-item input[type="checkbox"] {
-  width: 20px;
-  height: 20px;
+  width: 24px;
+  height: 24px;
   cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
 }
 
 .save-button {
@@ -80,12 +84,20 @@
   font-weight: 600;
   transition: all 0.2s ease;
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+  min-height: 44px;
 }
 
 .save-button:hover {
   background: #2d2d2d;
   transform: translateY(-1px);
   box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
+}
+
+.save-button:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
 }
 
 .config-actions {
@@ -104,12 +116,20 @@
   font-weight: 600;
   transition: all 0.2s ease;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+  min-height: 44px;
 }
 
 .save-all-button:hover:not(:disabled) {
   background: #2d2d2d;
   transform: translateY(-1px);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.save-all-button:active:not(:disabled) {
+  transform: translateY(0);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
 .save-all-button:disabled {
@@ -134,6 +154,9 @@
   font-weight: 600;
   transition: all 0.2s ease;
   box-shadow: 0 2px 6px rgba(198, 40, 40, 0.2);
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+  min-height: 44px;
 }
 
 .reset-all-data-button:hover {
@@ -148,19 +171,53 @@
 }
 
 @media (max-width: 768px) {
+  .config-section {
+    padding: 16px;
+  }
+
   .config-item {
     flex-direction: column;
     align-items: flex-start;
-    gap: 10px;
+    gap: 12px;
+    padding: 12px;
+  }
+
+  .config-item label {
+    width: 100%;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
   }
 
   .config-input {
     width: 100%;
     margin-left: 0;
+    margin-top: 8px;
   }
 
   .save-button {
     width: 100%;
+    margin-top: 8px;
+  }
+
+  .config-actions {
+    margin-top: 24px;
+  }
+
+  .save-all-button,
+  .reset-all-data-button {
+    width: 100%;
+    margin-bottom: 12px;
+  }
+}
+
+@media (max-width: 480px) {
+  .config-section {
+    padding: 12px;
+  }
+
+  .config-item {
+    padding: 10px;
   }
 }
 

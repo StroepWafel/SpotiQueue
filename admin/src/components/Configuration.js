@@ -64,6 +64,29 @@ function Configuration() {
         <div className={`message ${messageType === 'success' ? 'message-success' : 'message-error'}`}>{message}</div>
       )}
 
+      <div className="config-section" style={{ border: '2px solid #1a1a1a', backgroundColor: '#fafafa' }}>
+        <h2 style={{ color: '#1a1a1a', marginBottom: '10px' }}>Queue Management</h2>
+        <div className="config-item">
+          <label>
+            <input
+              type="checkbox"
+              checked={config.queueing_enabled !== 'false'}
+              onChange={(e) => handleChange('queueing_enabled', e.target.checked ? 'true' : 'false')}
+            />
+            Enable Queueing
+          </label>
+          <button
+            onClick={() => updateConfig('queueing_enabled', config.queueing_enabled || 'true')}
+            className="save-button"
+          >
+            Save
+          </button>
+        </div>
+        <p style={{ marginTop: '10px', fontSize: '0.9rem', color: '#666', fontStyle: 'italic' }}>
+          When disabled, all queue requests and search functionality will be blocked. This is useful for temporarily pausing the queue system.
+        </p>
+      </div>
+
       <div className="config-section">
         <h2>Rate Limiting</h2>
         <div className="config-item">
@@ -183,6 +206,27 @@ function Configuration() {
             Save
           </button>
         </div>
+        <div className="config-item">
+          <label>
+            Admin Panel Redirect URL:
+            <input
+              type="text"
+              value={config.admin_panel_url || ''}
+              onChange={(e) => handleChange('admin_panel_url', e.target.value)}
+              className="config-input"
+              placeholder="https://admin.url.com"
+            />
+          </label>
+          <button
+            onClick={() => updateConfig('admin_panel_url', config.admin_panel_url || '')}
+            className="save-button"
+          >
+            Save
+          </button>
+        </div>
+        <p style={{ marginTop: '10px', fontSize: '0.9rem', color: '#666', fontStyle: 'italic' }}>
+          Full URL for the "Go to Admin Panel" button after Spotify authorization (e.g., https://admin.url.com). If left empty, it will redirect to "ChangeURLInSettings.com" as a placeholder.
+        </p>
       </div>
 
       <div className="config-actions">

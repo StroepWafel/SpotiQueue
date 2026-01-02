@@ -66,6 +66,8 @@ function initDatabase() {
     { key: 'fingerprinting_enabled', value: 'true' },
     { key: 'url_input_enabled', value: 'true' },
     { key: 'search_ui_enabled', value: 'true' },
+    { key: 'queueing_enabled', value: 'true' },
+    { key: 'admin_panel_url', value: '' }, // Empty by default, will use placeholder if not configured
     { key: 'admin_password', value: 'admin' }
   ];
 

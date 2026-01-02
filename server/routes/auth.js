@@ -1,10 +1,22 @@
 const express = require('express');
 const axios = require('axios');
-const { setConfig } = require('../utils/config');
+const basicAuth = require('express-basic-auth');
+const { setConfig, getConfig } = require('../utils/config');
 const fs = require('fs');
 const path = require('path');
 
 const router = express.Router();
+
+// Basic auth middleware for admin endpoints
+const authMiddleware = (req, res, next) => {
+  const password = getConfig('admin_password') || 'admin';
+  const auth = basicAuth({
+    users: { admin: password },
+    challenge: true,
+    realm: 'Admin Area'
+  });
+  return auth(req, res, next);
+};
 
 // Get OAuth authorization URL
 router.get('/authorize', (req, res) => {
@@ -158,6 +170,16 @@ router.get('/callback', async (req, res) => {
     // Update config in database
     setConfig('spotify_connected', 'true');
     
+    // Get admin panel URL from config, default to placeholder if not set
+    const adminPanelUrl = getConfig('admin_panel_url');
+    let redirectUrl = (adminPanelUrl && adminPanelUrl.trim() !== '') ? adminPanelUrl : 'ChangeURLInSettings.com';
+    
+    // Ensure URL is absolute (starts with http:// or https://)
+    // If it doesn't start with a protocol, prepend https://
+    if (redirectUrl !== 'ChangeURLInSettings.com' && !redirectUrl.match(/^https?:\/\//i)) {
+      redirectUrl = 'https://' + redirectUrl;
+    }
+    
     res.send(`
       <html>
         <head><title>Authorization Successful</title></head>
@@ -168,7 +190,7 @@ router.get('/callback', async (req, res) => {
             <p style="margin-bottom: 30px; color: #666;">Refresh token and user ID have been saved and are now active.</p>
             <p style="margin-bottom: 20px; color: #424242;"><strong>No restart needed.</strong> Your connection is ready to use immediately.</p>
             <a href="/" style="display: inline-block; padding: 12px 24px; background: #212121; color: white; text-decoration: none; border-radius: 4px; font-weight: 500; margin-right: 10px;">Return to App</a>
-            <a href="/admin" style="display: inline-block; padding: 12px 24px; background: #616161; color: white; text-decoration: none; border-radius: 4px; font-weight: 500;">Go to Admin Panel</a>
+            <a href="${redirectUrl}" style="display: inline-block; padding: 12px 24px; background: #616161; color: white; text-decoration: none; border-radius: 4px; font-weight: 500;">Go to Admin Panel</a>
           </div>
         </body>
       </html>
@@ -207,6 +229,49 @@ router.get('/status', (req, res) => {
     hasClientId,
     hasClientSecret
   });
+});
+
+// Disconnect Spotify account (requires admin auth)
+router.post('/disconnect', authMiddleware, (req, res) => {
+  try {
+    const envPath = path.join(__dirname, '../../.env');
+    let envContent = '';
+    
+    if (fs.existsSync(envPath)) {
+      envContent = fs.readFileSync(envPath, 'utf8');
+    }
+    
+    // Remove refresh token from .env
+    if (envContent.includes('SPOTIFY_REFRESH_TOKEN=')) {
+      envContent = envContent.replace(/SPOTIFY_REFRESH_TOKEN=.*\n?/g, '');
+    }
+    
+    // Remove user ID from .env
+    if (envContent.includes('SPOTIFY_USER_ID=')) {
+      envContent = envContent.replace(/SPOTIFY_USER_ID=.*\n?/g, '');
+    }
+    
+    // Write back to .env
+    fs.writeFileSync(envPath, envContent);
+    
+    // Clear in-memory environment variables
+    delete process.env.SPOTIFY_REFRESH_TOKEN;
+    delete process.env.SPOTIFY_USER_ID;
+    
+    // Clear any cached Spotify access token
+    const spotifyUtils = require('../utils/spotify');
+    if (spotifyUtils.clearTokenCache) {
+      spotifyUtils.clearTokenCache();
+    }
+    
+    // Update config in database
+    setConfig('spotify_connected', 'false');
+    
+    res.json({ success: true, message: 'Spotify account disconnected successfully' });
+  } catch (error) {
+    console.error('Disconnect error:', error);
+    res.status(500).json({ error: 'Failed to disconnect Spotify account' });
+  }
 });
 
 module.exports = router;

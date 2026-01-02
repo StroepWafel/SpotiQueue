@@ -42,8 +42,7 @@ function QueueForm({ fingerprintId }) {
   const handleQueueTrack = async (trackId) => {
     setIsQueueing(true);
     setMessage(null);
-    setSearchResults([]);
-    setSearchQuery('');
+    // Keep search results and query - don't clear them
 
     try {
       const response = await axios.post('/api/queue/add', {

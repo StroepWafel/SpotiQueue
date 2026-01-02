@@ -16,11 +16,16 @@
   text-align: center;
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
   transition: transform 0.2s ease, box-shadow 0.2s ease;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .stat-card:hover {
   transform: translateY(-2px);
   box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);
+}
+
+.stat-card:active {
+  transform: translateY(0);
 }
 
 .stat-card-wide {
@@ -55,6 +60,11 @@
 @media (max-width: 768px) {
   .stats-grid {
     grid-template-columns: 1fr;
+    gap: 16px;
+  }
+
+  .stat-card {
+    padding: 24px;
   }
 
   .stat-card-wide {
@@ -63,6 +73,20 @@
 
   .stat-value {
     font-size: 2rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .stat-card {
+    padding: 20px;
+  }
+
+  .stat-value {
+    font-size: 1.75rem;
+  }
+
+  .stat-label {
+    font-size: 0.9rem;
   }
 }
 

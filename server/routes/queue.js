@@ -9,6 +9,12 @@ const db = getDb();
 // Search tracks
 router.post('/search', async (req, res) => {
   try {
+    // Check if queueing is enabled (search is only useful when queueing is enabled)
+    const queueingEnabled = getConfig('queueing_enabled');
+    if (queueingEnabled === 'false') {
+      return res.status(503).json({ error: 'Queueing is currently disabled.' });
+    }
+    
     const { query } = req.body;
     
     if (!query || query.trim().length === 0) {
@@ -33,6 +39,12 @@ router.post('/search', async (req, res) => {
 
 // Queue a track
 router.post('/add', async (req, res) => {
+  // Check if queueing is enabled
+  const queueingEnabled = getConfig('queueing_enabled');
+  if (queueingEnabled === 'false') {
+    return res.status(503).json({ error: 'Queueing is currently disabled.' });
+  }
+  
   const fingerprintId = req.body.fingerprint_id || req.cookies.fingerprint_id;
   
   // Validate fingerprint

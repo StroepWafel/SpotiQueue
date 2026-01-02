@@ -5,6 +5,7 @@ import './SpotifyConnect.css';
 function SpotifyConnect() {
   const [status, setStatus] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [disconnecting, setDisconnecting] = useState(false);
 
   useEffect(() => {
     checkStatus();
@@ -36,6 +37,25 @@ function SpotifyConnect() {
     } catch (error) {
       console.error('Error getting auth URL:', error);
       alert('Failed to start authorization. Please check your Spotify credentials in .env file.');
+    }
+  };
+
+  const handleDisconnect = async () => {
+    if (!window.confirm('Are you sure you want to disconnect your Spotify account? This will remove the connection and you will need to reconnect to queue songs.')) {
+      return;
+    }
+
+    setDisconnecting(true);
+    try {
+      await axios.post('/api/auth/disconnect');
+      // Refresh status after disconnect
+      await checkStatus();
+      alert('Spotify account disconnected successfully.');
+    } catch (error) {
+      console.error('Error disconnecting:', error);
+      alert('Failed to disconnect Spotify account: ' + (error.response?.data?.error || error.message));
+    } finally {
+      setDisconnecting(false);
     }
   };
 
@@ -79,9 +99,20 @@ function SpotifyConnect() {
           </div>
         )}
         {showConnectButton && (
-          <button onClick={handleConnect} className="connect-button">
-            {isConnected ? 'Reconnect Spotify Account' : 'Connect Spotify Account'}
-          </button>
+          <div style={{ display: 'flex', gap: '10px', justifyContent: 'center', flexWrap: 'wrap' }}>
+            <button onClick={handleConnect} className="connect-button">
+              {isConnected ? 'Reconnect Spotify Account' : 'Connect Spotify Account'}
+            </button>
+            {isConnected && (
+              <button 
+                onClick={handleDisconnect} 
+                className="disconnect-button"
+                disabled={disconnecting}
+              >
+                {disconnecting ? 'Disconnecting...' : 'Disconnect Account'}
+              </button>
+            )}
+          </div>
         )}
         {!showConnectButton && status && (
           <div className="warning">

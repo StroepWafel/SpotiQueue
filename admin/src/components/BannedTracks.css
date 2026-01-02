@@ -51,6 +51,9 @@
   align-self: flex-start;
   transition: all 0.2s ease;
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+  min-height: 44px;
 }
 
 .ban-button:hover {
@@ -59,14 +62,26 @@
   box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
 }
 
+.ban-button:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+}
+
 .banned-list h2 {
   margin-bottom: 15px;
   color: #333;
 }
 
+.banned-list {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  width: 100%;
+}
+
 .banned-table {
   width: 100%;
   border-collapse: collapse;
+  min-width: 500px;
 }
 
 .banned-table th {
@@ -75,6 +90,7 @@
   text-align: left;
   font-weight: 600;
   border-bottom: 2px solid #e0e0e0;
+  white-space: nowrap;
 }
 
 .banned-table td {
@@ -86,6 +102,7 @@
   font-family: monospace;
   font-size: 0.9rem;
   color: #666;
+  word-break: break-all;
 }
 
 .unban-button {
@@ -99,12 +116,20 @@
   font-weight: 600;
   transition: all 0.2s ease;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+  min-height: 44px;
 }
 
 .unban-button:hover {
   background: #2d2d2d;
   transform: translateY(-1px);
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+.unban-button:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 .loading,
@@ -115,13 +140,56 @@
 }
 
 @media (max-width: 768px) {
+  .add-ban-section {
+    padding: 16px;
+  }
+
+  .ban-button {
+    width: 100%;
+    align-self: stretch;
+  }
+
+  .banned-list {
+    margin: 0 -15px;
+    padding: 0 15px;
+  }
+
   .banned-table {
     font-size: 0.85rem;
+    min-width: 550px;
   }
 
   .banned-table th,
   .banned-table td {
-    padding: 8px;
+    padding: 10px 8px;
+  }
+
+  .track-id {
+    font-size: 0.8rem;
+    max-width: 200px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .unban-button {
+    width: 100%;
+    padding: 10px 16px;
+  }
+}
+
+@media (max-width: 480px) {
+  .banned-table {
+    font-size: 0.8rem;
+    min-width: 500px;
+  }
+
+  .banned-table th,
+  .banned-table td {
+    padding: 8px 6px;
+  }
+
+  .track-id {
+    max-width: 150px;
   }
 }
 

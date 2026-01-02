@@ -15,6 +15,7 @@
   display: flex;
   gap: 15px;
   align-items: center;
+  flex-wrap: wrap;
 }
 
 .filters label {
@@ -26,6 +27,8 @@
   border: 1px solid #ddd;
   border-radius: 6px;
   font-size: 0.9rem;
+  min-height: 36px;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .reset-all-button {
@@ -37,19 +40,29 @@
   cursor: pointer;
   font-weight: 500;
   transition: background-color 0.2s;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+  min-height: 44px;
 }
 
 .reset-all-button:hover {
   background: #757575;
 }
 
+.reset-all-button:active {
+  background: #555;
+}
+
 .device-list {
   overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  width: 100%;
 }
 
 .devices-table {
   width: 100%;
   border-collapse: collapse;
+  min-width: 600px;
 }
 
 .devices-table th {
@@ -58,6 +71,7 @@
   text-align: left;
   font-weight: 600;
   border-bottom: 2px solid #e0e0e0;
+  white-space: nowrap;
 }
 
 .devices-table td {
@@ -69,6 +83,7 @@
   font-family: monospace;
   font-size: 0.9rem;
   color: #666;
+  word-break: break-all;
 }
 
 .status-badge {
@@ -105,6 +120,7 @@
 .actions {
   display: flex;
   gap: 8px;
+  flex-wrap: wrap;
 }
 
 .action-button {
@@ -115,10 +131,17 @@
   font-size: 0.85rem;
   font-weight: 500;
   transition: opacity 0.2s;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+  min-height: 36px;
 }
 
 .action-button:hover:not(:disabled) {
   opacity: 0.8;
+}
+
+.action-button:active:not(:disabled) {
+  opacity: 0.7;
 }
 
 .action-button:disabled {
@@ -173,21 +196,73 @@
 }
 
 @media (max-width: 768px) {
+  .device-controls {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .filters {
+    width: 100%;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+  }
+
+  .filters select {
+    width: 100%;
+  }
+
+  .reset-all-button {
+    width: 100%;
+  }
+
+  .device-list {
+    margin: 0 -15px;
+    padding: 0 15px;
+  }
+
   .devices-table {
     font-size: 0.85rem;
+    min-width: 700px;
   }
 
   .devices-table th,
   .devices-table td {
-    padding: 8px;
+    padding: 10px 8px;
+  }
+
+  .device-id {
+    font-size: 0.8rem;
+    max-width: 150px;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 
   .actions {
     flex-direction: column;
+    gap: 6px;
   }
 
   .action-button {
     width: 100%;
+    min-height: 44px;
+    padding: 10px 12px;
+  }
+}
+
+@media (max-width: 480px) {
+  .devices-table {
+    font-size: 0.8rem;
+    min-width: 650px;
+  }
+
+  .devices-table th,
+  .devices-table td {
+    padding: 8px 6px;
+  }
+
+  .device-id {
+    max-width: 120px;
   }
 }
 
