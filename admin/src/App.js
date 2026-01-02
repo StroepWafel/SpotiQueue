@@ -39,7 +39,7 @@ function App() {
     <div className="app">
       <div className="admin-container">
         <header className="admin-header">
-          <h1>Spotify Queue Admin</h1>
+          <h1>SpotiQueue Admin</h1>
         </header>
 
         <nav className="admin-nav">
