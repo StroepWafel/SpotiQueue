@@ -58,6 +58,14 @@ router.post('/add', async (req, res) => {
     return res.status(400).json({ error: 'Could not fingerprint your device.' });
   }
   
+  // Check if username is required but not set
+  const requireUsername = getConfig('require_username') === 'true';
+  if (requireUsername && !fingerprint.username) {
+    return res.status(400).json({ 
+      error: 'Username is required. Please refresh the page and enter your username.' 
+    });
+  }
+  
   if (fingerprint.status === 'blocked') {
     const now = Math.floor(Date.now() / 1000);
     db.prepare(`

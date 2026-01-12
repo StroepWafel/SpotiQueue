@@ -209,6 +209,29 @@ function Configuration() {
       </div>
 
       <div className="config-section">
+        <h2>User Identification</h2>
+        <div className="config-item">
+          <label>
+            <input
+              type="checkbox"
+              checked={config.require_username === 'true'}
+              onChange={(e) => handleChange('require_username', e.target.checked ? 'true' : 'false')}
+            />
+            Require Username on First Visit
+          </label>
+          <button
+            onClick={() => updateConfig('require_username', config.require_username || 'false')}
+            className="save-button"
+          >
+            Save
+          </button>
+        </div>
+        <p style={{ marginTop: '10px', fontSize: '0.9rem', color: '#666', fontStyle: 'italic' }}>
+          When enabled, users will be prompted to enter a username before they can queue songs. This helps identify users in the device management panel.
+        </p>
+      </div>
+
+      <div className="config-section">
         <h2>Security</h2>
         <div className="config-item">
           <label>

@@ -51,12 +51,25 @@ router.get('/devices', (req, res) => {
     };
   });
   
+  // Sort devices to show those with usernames first if sorting by last_queue_attempt
+  if (sort === 'last_queue_attempt') {
+    devicesWithStatus.sort((a, b) => {
+      // Devices with usernames first
+      if (a.username && !b.username) return -1;
+      if (!a.username && b.username) return 1;
+      // Then by last_queue_attempt
+      return (b.last_queue_attempt || 0) - (a.last_queue_attempt || 0);
+    });
+  }
+  
   res.json({ devices: devicesWithStatus });
 });
 
 // Get device details
 router.get('/devices/:id', (req, res) => {
   const { id } = req.params;
+  const { limit = '100' } = req.query;
+  const limitNum = parseInt(limit, 10);
   
   const device = db.prepare('SELECT * FROM fingerprints WHERE id = ?').get(id);
   if (!device) {
@@ -67,10 +80,14 @@ router.get('/devices/:id', (req, res) => {
     SELECT * FROM queue_attempts
     WHERE fingerprint_id = ?
     ORDER BY timestamp DESC
-    LIMIT 20
-  `).all(id);
+    LIMIT ?
+  `).all(id, limitNum);
   
-  res.json({ device, attempts });
+  const totalAttempts = db.prepare(`
+    SELECT COUNT(*) as count FROM queue_attempts WHERE fingerprint_id = ?
+  `).get(id).count;
+  
+  res.json({ device, attempts, total_attempts: totalAttempts });
 });
 
 // Reset cooldown for a device

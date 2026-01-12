@@ -21,9 +21,20 @@ function initDatabase() {
       last_queue_attempt INTEGER,
       cooldown_expires INTEGER,
       status TEXT DEFAULT 'active' CHECK(status IN ('active', 'blocked')),
+      username TEXT,
       created_at INTEGER DEFAULT (strftime('%s', 'now'))
     )
   `);
+  
+  // Add username column to existing fingerprints table if it doesn't exist
+  try {
+    db.exec(`ALTER TABLE fingerprints ADD COLUMN username TEXT`);
+  } catch (error) {
+    // Column already exists, ignore error
+    if (!error.message.includes('duplicate column')) {
+      console.warn('Warning adding username column:', error.message);
+    }
+  }
 
   // Queue attempts log
   db.exec(`
@@ -69,7 +80,8 @@ function initDatabase() {
     { key: 'search_ui_enabled', value: 'true' },
     { key: 'queueing_enabled', value: 'true' },
     { key: 'admin_panel_url', value: '' }, // Empty by default, will use placeholder if not configured
-    { key: 'admin_password', value: 'admin' }
+    { key: 'admin_password', value: 'admin' },
+    { key: 'require_username', value: 'false' } // Require username on first visit
   ];
 
   const stmt = db.prepare('INSERT OR IGNORE INTO config (key, value) VALUES (?, ?)');

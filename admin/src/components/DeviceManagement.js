@@ -7,9 +7,20 @@ function DeviceManagement() {
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('all');
   const [sortBy, setSortBy] = useState('last_queue_attempt');
+  const [selectedDevice, setSelectedDevice] = useState(null);
+  const [queueHistory, setQueueHistory] = useState([]);
+  const [historyLoading, setHistoryLoading] = useState(false);
+  const [showHistoryModal, setShowHistoryModal] = useState(false);
 
   useEffect(() => {
     loadDevices();
+    
+    // Auto-refresh devices every 5 seconds
+    const interval = setInterval(() => {
+      loadDevices();
+    }, 5000);
+    
+    return () => clearInterval(interval);
   }, [filter, sortBy]);
 
   const loadDevices = async () => {
@@ -82,6 +93,51 @@ function DeviceManagement() {
     return `${mins}m ${secs}s`;
   };
 
+  const viewQueueHistory = async (deviceId) => {
+    setHistoryLoading(true);
+    setShowHistoryModal(true);
+    
+    try {
+      const response = await axios.get(`/api/admin/devices/${deviceId}`, {
+        params: { limit: 100 }
+      });
+      setSelectedDevice({
+        ...response.data.device,
+        display_id: response.data.device.id.substring(0, 8) + '...'
+      });
+      setQueueHistory(response.data.attempts || []);
+    } catch (error) {
+      console.error('Error loading queue history:', error);
+      alert('Failed to load queue history');
+      setShowHistoryModal(false);
+    } finally {
+      setHistoryLoading(false);
+    }
+  };
+
+  const closeHistoryModal = () => {
+    setShowHistoryModal(false);
+    setSelectedDevice(null);
+    setQueueHistory([]);
+  };
+
+  const getStatusColor = (status) => {
+    switch (status) {
+      case 'success':
+        return '#2e7d32';
+      case 'error':
+        return '#c62828';
+      case 'blocked':
+        return '#d32f2f';
+      case 'rate_limited':
+        return '#f57c00';
+      case 'banned':
+        return '#c62828';
+      default:
+        return '#666';
+    }
+  };
+
   if (loading) {
     return <div className="loading">Loading devices...</div>;
   }
@@ -118,6 +174,7 @@ function DeviceManagement() {
             <thead>
               <tr>
                 <th>Device ID</th>
+                <th>Username</th>
                 <th>Status</th>
                 <th>First Seen</th>
                 <th>Last Activity</th>
@@ -129,6 +186,7 @@ function DeviceManagement() {
               {devices.map((device) => (
                 <tr key={device.id}>
                   <td className="device-id">{device.display_id}</td>
+                  <td className="device-username">{device.username || '-'}</td>
                   <td>
                     <span className={`status-badge status-${device.status}`}>
                       {device.status === 'blocked' ? 'BLOCKED' : 'ACTIVE'}
@@ -145,6 +203,13 @@ function DeviceManagement() {
                       : 'None'}
                   </td>
                   <td className="actions">
+                    <button
+                      className="action-button history-button"
+                      onClick={() => viewQueueHistory(device.id)}
+                      title="View queue history"
+                    >
+                      History
+                    </button>
                     {device.status === 'blocked' ? (
                       <button
                         className="action-button unblock-button"
@@ -176,6 +241,66 @@ function DeviceManagement() {
           </table>
         )}
       </div>
+
+      {showHistoryModal && (
+        <div className="history-modal-overlay" onClick={closeHistoryModal}>
+          <div className="history-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="history-modal-header">
+              <h2>Queue History</h2>
+              <button className="history-modal-close" onClick={closeHistoryModal}>×</button>
+            </div>
+            {selectedDevice && (
+              <div className="history-device-info">
+                <div><strong>Device ID:</strong> {selectedDevice.display_id}</div>
+                {selectedDevice.username && (
+                  <div><strong>Username:</strong> {selectedDevice.username}</div>
+                )}
+                <div><strong>Status:</strong> {selectedDevice.status}</div>
+                <div><strong>First Seen:</strong> {formatTime(selectedDevice.first_seen)}</div>
+              </div>
+            )}
+            <div className="history-content">
+              {historyLoading ? (
+                <div className="loading">Loading history...</div>
+              ) : queueHistory.length === 0 ? (
+                <div className="no-history">No queue history found</div>
+              ) : (
+                <table className="history-table">
+                  <thead>
+                    <tr>
+                      <th>Time</th>
+                      <th>Track</th>
+                      <th>Artist</th>
+                      <th>Status</th>
+                      <th>Error</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {queueHistory.map((attempt) => (
+                      <tr key={attempt.id}>
+                        <td>{formatTime(attempt.timestamp)}</td>
+                        <td>{attempt.track_name || '-'}</td>
+                        <td>{attempt.artist_name || '-'}</td>
+                        <td>
+                          <span 
+                            className="history-status-badge"
+                            style={{ color: getStatusColor(attempt.status) }}
+                          >
+                            {attempt.status.toUpperCase()}
+                          </span>
+                        </td>
+                        <td className="history-error">
+                          {attempt.error_message || '-'}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

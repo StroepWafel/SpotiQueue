@@ -33,6 +33,66 @@
   color: #757575;
 }
 
+.username-modal {
+  text-align: center;
+}
+
+.username-prompt {
+  font-size: 1.1rem;
+  color: #666;
+  margin-bottom: 24px;
+}
+
+.username-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  max-width: 400px;
+  margin: 0 auto;
+}
+
+.username-input {
+  padding: 14px 18px;
+  font-size: 1rem;
+  border: 2px solid #e0e0e0;
+  border-radius: 8px;
+  outline: none;
+  transition: border-color 0.2s;
+  font-family: inherit;
+}
+
+.username-input:focus {
+  border-color: #1db954;
+}
+
+.username-error {
+  color: #d32f2f;
+  font-size: 0.9rem;
+  text-align: left;
+  margin-top: -8px;
+}
+
+.username-submit {
+  padding: 14px 24px;
+  font-size: 1rem;
+  background: #1db954;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: background-color 0.2s;
+  font-family: inherit;
+}
+
+.username-submit:hover {
+  background: #1ed760;
+}
+
+.username-submit:active {
+  background: #1aa34a;
+}
+
 @media (max-width: 768px) {
   .container {
     padding: 20px;
@@ -42,6 +102,10 @@
   .title {
     font-size: 2rem;
     margin-bottom: 20px;
+  }
+  
+  .username-form {
+    max-width: 100%;
   }
 }
 
