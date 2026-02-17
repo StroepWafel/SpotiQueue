@@ -10,7 +10,7 @@ const db = getDb();
 // Server-side cache for queue data
 let queueCache = null;
 let queueCacheExpiry = 0;
-const QUEUE_CACHE_TTL = 60000; // 60 seconds
+const QUEUE_CACHE_TTL = 30000; // 30 seconds
 
 // User auth middleware (optional, only if user_password is set)
 const userAuthMiddleware = (req, res, next) => {

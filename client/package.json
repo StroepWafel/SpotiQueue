@@ -1,12 +1,13 @@
 {
-  "name": "spotify-queue-client",
+  "name": "spotify-queue-app",
   "version": "1.0.0",
   "private": true,
   "dependencies": {
+    "axios": "^1.6.2",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
+    "react-router-dom": "^6.30.3",
     "react-scripts": "5.0.1",
-    "axios": "^1.6.2",
     "web-vitals": "^3.5.0"
   },
   "scripts": {
@@ -34,4 +35,3 @@
   },
   "proxy": "http://localhost:8000"
 }
-
