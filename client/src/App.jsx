@@ -6,6 +6,7 @@ import { Toaster } from './components/ui/toast'
 import NowPlaying from './components/NowPlaying'
 import QueueForm from './components/QueueForm'
 import Queue from './components/Queue'
+import Display from './components/Display'
 import DeviceManagement from './components/DeviceManagement'
 import BannedTracks from './components/BannedTracks'
 import Configuration from './components/Configuration'
@@ -168,7 +169,7 @@ function ClientPage() {
             <QueueForm fingerprintId={fingerprintId} />
           </div>
           <div className="lg:sticky lg:top-20 lg:self-start">
-            <Queue />
+            <Queue fingerprintId={fingerprintId} />
           </div>
         </div>
       </main>
@@ -253,6 +254,7 @@ function App() {
       <Routes>
         <Route path="/" element={<ClientPage />} />
         <Route path="/admin" element={<AdminPage />} />
+        <Route path="/display" element={<Display />} />
       </Routes>
       <Toaster />
     </Router>

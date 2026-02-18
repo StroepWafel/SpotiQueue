@@ -95,6 +95,16 @@ async function initDatabase() {
     )
   `);
 
+  db.run(`
+    CREATE TABLE IF NOT EXISTS votes (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      track_id TEXT NOT NULL,
+      fingerprint_id TEXT NOT NULL,
+      created_at INTEGER DEFAULT (strftime('%s', 'now')),
+      UNIQUE(track_id, fingerprint_id)
+    )
+  `);
+
   // Try to add approved_by column if it doesn't exist
   try {
     db.run(`ALTER TABLE prequeue ADD COLUMN approved_by TEXT`);
@@ -138,7 +148,8 @@ async function initDatabase() {
     { key: 'user_password', value: '' },
     { key: 'require_username', value: 'false' },
     { key: 'max_song_duration', value: '0' },
-    { key: 'ban_explicit', value: 'false' }
+    { key: 'ban_explicit', value: 'false' },
+    { key: 'voting_enabled', value: 'false' }
   ];
 
   defaultConfig.forEach(config => {

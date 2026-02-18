@@ -333,5 +333,77 @@ router.post('/add', userAuthMiddleware, async (req, res) => {
   }
 });
 
+// Vote for a track in the queue
+router.post('/vote', userAuthMiddleware, (req, res) => {
+  const db = getDb();
+  const { track_id } = req.body;
+  const fingerprintId = req.body.fingerprint_id || req.cookies.fingerprint_id;
+
+  if (!track_id) {
+    return res.status(400).json({ error: 'Track ID required' });
+  }
+
+  if (!fingerprintId) {
+    return res.status(400).json({ error: 'Fingerprint required' });
+  }
+
+  try {
+    // Check if already voted
+    const existing = db.prepare(
+      'SELECT id FROM votes WHERE track_id = ? AND fingerprint_id = ?'
+    ).get(track_id, fingerprintId);
+
+    if (existing) {
+      // Remove vote (toggle)
+      db.prepare('DELETE FROM votes WHERE track_id = ? AND fingerprint_id = ?').run(track_id, fingerprintId);
+      const count = db.prepare('SELECT COUNT(*) as count FROM votes WHERE track_id = ?').get(track_id);
+      return res.json({ voted: false, votes: count ? count.count : 0 });
+    }
+
+    // Add vote
+    const now = Math.floor(Date.now() / 1000);
+    db.prepare(
+      'INSERT INTO votes (track_id, fingerprint_id, created_at) VALUES (?, ?, ?)'
+    ).run(track_id, fingerprintId, now);
+
+    const count = db.prepare('SELECT COUNT(*) as count FROM votes WHERE track_id = ?').get(track_id);
+    res.json({ voted: true, votes: count ? count.count : 0 });
+  } catch (error) {
+    console.error('Vote error:', error);
+    res.status(500).json({ error: 'Failed to vote' });
+  }
+});
+
+// Get votes for all tracks (or specific track)
+router.get('/votes', userAuthMiddleware, (req, res) => {
+  const db = getDb();
+  const fingerprintId = req.query.fingerprint_id || req.cookies.fingerprint_id;
+
+  try {
+    // Get all vote counts
+    const voteCounts = db.prepare(
+      'SELECT track_id, COUNT(*) as count FROM votes GROUP BY track_id'
+    ).all();
+
+    const votes = {};
+    voteCounts.forEach(row => {
+      votes[row.track_id] = row.count;
+    });
+
+    // Get user's votes if fingerprint provided
+    let userVotes = [];
+    if (fingerprintId) {
+      userVotes = db.prepare(
+        'SELECT track_id FROM votes WHERE fingerprint_id = ?'
+      ).all(fingerprintId).map(row => row.track_id);
+    }
+
+    res.json({ votes, userVotes });
+  } catch (error) {
+    console.error('Get votes error:', error);
+    res.json({ votes: {}, userVotes: [] });
+  }
+});
+
 module.exports = router;
 

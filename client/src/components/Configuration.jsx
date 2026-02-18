@@ -79,6 +79,10 @@ function Configuration() {
             <div><Label>Enable Queueing</Label><p className="text-xs text-muted-foreground">When disabled, all queue requests are blocked</p></div>
             <Switch checked={config.queueing_enabled !== 'false'} onCheckedChange={(v) => updateConfig('queueing_enabled', v ? 'true' : 'false')} />
           </div>
+          <div className="flex items-center justify-between">
+            <div><Label>Enable Song Voting</Label><p className="text-xs text-muted-foreground">Allow attendees to upvote queued songs</p></div>
+            <Switch checked={config.voting_enabled === 'true'} onCheckedChange={(v) => updateConfig('voting_enabled', v ? 'true' : 'false')} />
+          </div>
         </CardContent>
       </Card>
 
