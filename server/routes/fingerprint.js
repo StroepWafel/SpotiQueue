@@ -4,10 +4,10 @@ const { getDb } = require('../db');
 const { getConfig } = require('../utils/config');
 
 const router = express.Router();
-const db = getDb();
 
 // Generate or retrieve fingerprint
 router.post('/generate', (req, res) => {
+  const db = getDb();
   const fingerprintId = req.cookies.fingerprint_id || crypto.randomBytes(16).toString('hex');
   const username = req.body.username || null;
   const requireUsername = getConfig('require_username') === 'true';
@@ -62,6 +62,7 @@ router.post('/generate', (req, res) => {
 
 // Validate fingerprint
 router.post('/validate', (req, res) => {
+  const db = getDb();
   const fingerprintId = req.body.fingerprint_id || req.cookies.fingerprint_id;
   const requireUsername = getConfig('require_username') === 'true';
   

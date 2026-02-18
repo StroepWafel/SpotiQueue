@@ -7,7 +7,6 @@ const crypto = require('crypto');
 const basicAuth = require('express-basic-auth');
 
 const router = express.Router();
-const db = getDb();
 
 // User auth middleware (optional, only if user_password is set)
 const userAuthMiddleware = (req, res, next) => {
@@ -28,6 +27,7 @@ const userAuthMiddleware = (req, res, next) => {
 
 // Submit track for prequeue approval
 router.post('/submit', userAuthMiddleware, async (req, res) => {
+  const db = getDb();
   console.log('Prequeue submit called');
   const prequeueEnabled = getConfig('prequeue_enabled') === 'true';
   console.log('Prequeue enabled:', prequeueEnabled);

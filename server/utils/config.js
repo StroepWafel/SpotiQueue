@@ -1,13 +1,13 @@
 const { getDb } = require('../db');
 
-const db = getDb();
-
 function getConfig(key) {
+  const db = getDb();
   const row = db.prepare('SELECT value FROM config WHERE key = ?').get(key);
   return row ? row.value : null;
 }
 
 function setConfig(key, value) {
+  const db = getDb();
   const now = Math.floor(Date.now() / 1000);
   db.prepare(`
     INSERT INTO config (key, value, updated_at)
@@ -18,6 +18,7 @@ function setConfig(key, value) {
 }
 
 function getAllConfig() {
+  const db = getDb();
   const rows = db.prepare('SELECT key, value FROM config').all();
   const config = {};
   rows.forEach(row => {

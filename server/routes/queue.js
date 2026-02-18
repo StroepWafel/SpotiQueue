@@ -5,7 +5,6 @@ const { searchTracks, getTrack, parseSpotifyUrl, addToQueue, getQueue } = requir
 const basicAuth = require('express-basic-auth');
 
 const router = express.Router();
-const db = getDb();
 
 // Server-side cache for queue data
 let queueCache = null;
@@ -92,6 +91,7 @@ router.post('/search', userAuthMiddleware, async (req, res) => {
 
 // Queue a track
 router.post('/add', userAuthMiddleware, async (req, res) => {
+  const db = getDb();
   // Check if queueing is enabled
   const queueingEnabled = getConfig('queueing_enabled');
   if (queueingEnabled === 'false') {
