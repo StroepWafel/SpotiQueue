@@ -6,7 +6,7 @@ function formatDuration(ms) {
   return `${Math.floor(ms / 60000)}:${String(Math.floor((ms % 60000) / 1000)).padStart(2, '0')}`
 }
 
-function NowPlaying({ track }) {
+function NowPlaying({ track, auraColor }) {
   const [progress, setProgress] = useState(0)
   const lastReceivedRef = useRef(null)
   const trackRef = useRef(null)
@@ -40,7 +40,12 @@ function NowPlaying({ track }) {
     : 0
 
   return (
-    <div className="bg-card text-card-foreground rounded-xl border border-border overflow-hidden">
+    <div
+      className="bg-card text-card-foreground rounded-xl border border-border overflow-hidden transition-all duration-700"
+      style={auraColor ? {
+        boxShadow: `0 0 0 1px rgba(${auraColor}, 0.3), 0 4px 24px rgba(${auraColor}, 0.15)`
+      } : {}}
+    >
       {!track ? (
         <div className="flex flex-col items-center justify-center py-10 text-muted-foreground gap-3">
           <div className="w-16 h-16 rounded-xl bg-muted flex items-center justify-center">
@@ -58,7 +63,8 @@ function NowPlaying({ track }) {
             <img
               src={track.album_art}
               alt={track.album}
-              className="w-24 h-24 rounded-xl object-cover shadow-lg flex-shrink-0"
+              className="w-24 h-24 rounded-xl object-cover shadow-lg flex-shrink-0 transition-all duration-700"
+              style={auraColor ? { boxShadow: `0 0 20px rgba(${auraColor}, 0.4)` } : {}}
             />
           ) : (
             <div className="w-24 h-24 rounded-xl bg-muted flex items-center justify-center flex-shrink-0">
@@ -94,10 +100,14 @@ function NowPlaying({ track }) {
             <div className="space-y-1">
               <div className="w-full h-1.5 bg-muted rounded-full overflow-hidden">
                 <div
-                  className={`h-full rounded-full transition-all duration-500 ${
-                    track.is_playing ? 'bg-primary' : 'bg-muted-foreground/40'
-                  }`}
-                  style={{ width: `${Math.min(Math.max(progress, 0), 100)}%` }}
+                  className="h-full rounded-full transition-all duration-500"
+                  style={
+                    track.is_playing && auraColor
+                      ? { width: `${Math.min(Math.max(progress, 0), 100)}%`, backgroundColor: `rgb(${auraColor})` }
+                      : track.is_playing
+                      ? { width: `${Math.min(Math.max(progress, 0), 100)}%`, backgroundColor: 'hsl(var(--primary))' }
+                      : { width: `${Math.min(Math.max(progress, 0), 100)}%`, backgroundColor: 'hsl(var(--muted-foreground) / 0.4)' }
+                  }
                 />
               </div>
               <div className="flex justify-between text-xs text-muted-foreground font-mono">

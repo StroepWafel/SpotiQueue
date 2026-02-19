@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import axios from 'axios'
 import { QRCodeSVG } from 'qrcode.react'
 import { Music, ChevronUp, WifiOff } from 'lucide-react'
+import { useAuraColor } from '../hooks/useAuraColor'
 
 const POLL_NOW_PLAYING_MS = 5000
 const POLL_QUEUE_MS = 8000
@@ -12,18 +13,22 @@ function formatDuration(ms) {
   return `${Math.floor(ms / 60000)}:${String(Math.floor((ms % 60000) / 1000)).padStart(2, '0')}`
 }
 
-function ProgressBar({ progress }) {
+function ProgressBar({ progress, auraColor }) {
   return (
     <div className="w-full h-1 bg-white/20 rounded-full overflow-hidden">
       <div
-        className="h-full bg-green-400 rounded-full transition-all duration-500"
-        style={{ width: `${Math.min(Math.max(progress, 0), 100)}%` }}
+        className="h-full rounded-full"
+        style={{
+          width: `${Math.min(Math.max(progress, 0), 100)}%`,
+          backgroundColor: auraColor ? `rgb(${auraColor})` : '#4ade80',
+          transition: 'width 500ms'
+        }}
       />
     </div>
   )
 }
 
-function AlbumArt({ src, alt, size = 'lg' }) {
+function AlbumArt({ src, alt, size = 'lg', auraColor }) {
   const [error, setError] = useState(false)
   const sizeClass = size === 'lg'
     ? 'w-48 h-48 md:w-64 md:h-64 lg:w-72 lg:h-72'
@@ -42,6 +47,7 @@ function AlbumArt({ src, alt, size = 'lg' }) {
       src={src}
       alt={alt || 'Album art'}
       className={`${sizeClass} rounded-2xl object-cover shadow-2xl flex-shrink-0`}
+      style={auraColor ? { boxShadow: `0 0 60px rgba(${auraColor}, 0.5)` } : {}}
       onError={() => setError(true)}
     />
   )
@@ -55,6 +61,7 @@ export default function Display() {
   const [progress, setProgress] = useState(0)
   const [initialized, setInitialized] = useState(false)
   const [votingEnabled, setVotingEnabled] = useState(false)
+  const [auraEnabled, setAuraEnabled] = useState(false)
   const [currentLyricIndex, setCurrentLyricIndex] = useState(0)
   const [cachedLyrics, setCachedLyrics] = useState(null)
   const [finishedTrackId, setFinishedTrackId] = useState(null)
@@ -67,6 +74,8 @@ export default function Display() {
   const appUrl = typeof window !== 'undefined'
     ? `${window.location.protocol}//${window.location.host}`
     : ''
+
+  const auraColor = useAuraColor(auraEnabled ? nowPlaying?.album_art : null)
 
   // Poll now playing
   useEffect(() => {
@@ -191,6 +200,13 @@ export default function Display() {
       .catch(() => setVotingEnabled(false))
   }, [])
 
+  // Fetch aura_enabled config once on mount
+  useEffect(() => {
+    axios.get('/api/config/public/aura_enabled', { timeout: 5000 })
+      .then(res => setAuraEnabled(res.data?.value !== 'false'))
+      .catch(() => {})
+  }, [])
+
   // Poll votes (only when voting is enabled)
   useEffect(() => {
     if (!votingEnabled) return
@@ -226,7 +242,12 @@ export default function Display() {
       <div className="flex flex-col lg:flex-row flex-1 min-h-0">
 
         {/* Left: Now Playing */}
-        <div className="flex flex-col items-center justify-center lg:w-1/2 p-8 lg:p-14 gap-6">
+        <div
+          className="flex flex-col items-center justify-center lg:w-1/2 p-8 lg:p-14 gap-6 transition-all duration-1000"
+          style={auraColor ? {
+            background: `radial-gradient(ellipse at center, rgba(${auraColor}, 0.25) 0%, transparent 70%)`
+          } : {}}
+        >
           {!initialized ? (
             <div className="flex flex-col items-center gap-3 text-white/40">
               <div className="h-64 w-64 rounded-2xl bg-white/5 animate-pulse" />
@@ -241,7 +262,7 @@ export default function Display() {
             </div>
           ) : (
             <>
-              <AlbumArt src={nowPlaying.album_art} alt={nowPlaying.album} size="lg" />
+              <AlbumArt src={nowPlaying.album_art} alt={nowPlaying.album} size="lg" auraColor={auraColor} />
 
               <div className="w-full max-w-sm space-y-3 text-center">
                 <div>
@@ -253,7 +274,7 @@ export default function Display() {
 
                 {/* Progress */}
                 <div className="space-y-1">
-                  <ProgressBar progress={progress} />
+                  <ProgressBar progress={progress} auraColor={auraColor} />
                   <div className="flex justify-between text-xs text-white/40 font-mono">
                     <span>{formatDuration((nowPlaying.progress_ms ?? 0) + (Date.now() - (lastFetchedAtRef.current ?? Date.now())))}</span>
                     <span>{formatDuration(nowPlaying.duration_ms)}</span>
