@@ -4,7 +4,6 @@ const { getDb } = require('../db');
 const { getConfig } = require('../utils/config');
 
 const router = express.Router();
-const db = getDb();
 
 // Basic auth middleware (dynamic password)
 const authMiddleware = (req, res, next) => {
@@ -22,6 +21,7 @@ router.use(authMiddleware);
 
 // Get all devices (fingerprints)
 router.get('/devices', (req, res) => {
+  const db = getDb();
   const { status, sort = 'last_queue_attempt' } = req.query;
   
   let query = 'SELECT * FROM fingerprints';
@@ -67,6 +67,7 @@ router.get('/devices', (req, res) => {
 
 // Get device details
 router.get('/devices/:id', (req, res) => {
+  const db = getDb();
   const { id } = req.params;
   const { limit = '100' } = req.query;
   const limitNum = parseInt(limit, 10);
@@ -92,6 +93,7 @@ router.get('/devices/:id', (req, res) => {
 
 // Reset cooldown for a device
 router.post('/devices/:id/reset-cooldown', (req, res) => {
+  const db = getDb();
   const { id } = req.params;
   
   const device = db.prepare('SELECT * FROM fingerprints WHERE id = ?').get(id);
@@ -106,6 +108,7 @@ router.post('/devices/:id/reset-cooldown', (req, res) => {
 
 // Block a device
 router.post('/devices/:id/block', (req, res) => {
+  const db = getDb();
   const { id } = req.params;
   
   const device = db.prepare('SELECT * FROM fingerprints WHERE id = ?').get(id);
@@ -120,6 +123,7 @@ router.post('/devices/:id/block', (req, res) => {
 
 // Unblock a device
 router.post('/devices/:id/unblock', (req, res) => {
+  const db = getDb();
   const { id } = req.params;
   
   const device = db.prepare('SELECT * FROM fingerprints WHERE id = ?').get(id);
@@ -134,6 +138,7 @@ router.post('/devices/:id/unblock', (req, res) => {
 
 // Reset all cooldowns
 router.post('/devices/reset-all-cooldowns', (req, res) => {
+  const db = getDb();
   db.prepare('UPDATE fingerprints SET cooldown_expires = NULL').run();
   
   res.json({ success: true, message: 'All cooldowns reset' });
@@ -141,12 +146,14 @@ router.post('/devices/reset-all-cooldowns', (req, res) => {
 
 // Get banned tracks
 router.get('/banned-tracks', (req, res) => {
+  const db = getDb();
   const tracks = db.prepare('SELECT * FROM banned_tracks ORDER BY created_at DESC').all();
   res.json({ tracks });
 });
 
 // Add banned track
 router.post('/banned-tracks', (req, res) => {
+  const db = getDb();
   const { track_id, artist_id, reason } = req.body;
   
   if (!track_id) {
@@ -170,6 +177,7 @@ router.post('/banned-tracks', (req, res) => {
 
 // Remove banned track
 router.delete('/banned-tracks/:trackId', (req, res) => {
+  const db = getDb();
   const { trackId } = req.params;
   
   const result = db.prepare('DELETE FROM banned_tracks WHERE track_id = ?').run(trackId);
@@ -183,6 +191,7 @@ router.delete('/banned-tracks/:trackId', (req, res) => {
 
 // Get queue statistics
 router.get('/stats', (req, res) => {
+  const db = getDb();
   const totalDevices = db.prepare('SELECT COUNT(*) as count FROM fingerprints').get().count;
   const activeDevices = db.prepare("SELECT COUNT(*) as count FROM fingerprints WHERE status = 'active'").get().count;
   const blockedDevices = db.prepare("SELECT COUNT(*) as count FROM fingerprints WHERE status = 'blocked'").get().count;
@@ -209,6 +218,7 @@ router.get('/stats', (req, res) => {
 
 // Reset all data (devices, stats, banned tracks - but NOT config)
 router.post('/reset-all-data', (req, res) => {
+  const db = getDb();
   try {
     // Use a transaction to ensure all deletions succeed or fail together
     const resetData = db.transaction(() => {

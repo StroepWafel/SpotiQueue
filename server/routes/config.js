@@ -15,6 +15,18 @@ const authMiddleware = (req, res, next) => {
   return auth(req, res, next);
 };
 
+// Public config endpoint (no auth required)
+router.get('/public/:key', (req, res) => {
+  const { key } = req.params;
+  const value = getConfig(key);
+  
+  if (value === null) {
+    return res.status(404).json({ error: 'Config key not found' });
+  }
+  
+  res.json({ key, value });
+});
+
 // Get all config
 router.get('/', authMiddleware, (req, res) => {
   const config = getAllConfig();

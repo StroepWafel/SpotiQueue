@@ -4,6 +4,10 @@ const { getConfig } = require('./config');
 let accessToken = null;
 let tokenExpiresAt = 0;
 
+// Rate limiting state
+let rateLimitResetTime = 0;
+let rateLimitRetryAfter = 0;
+
 // Clear token cache when refresh token changes
 function clearTokenCache() {
   accessToken = null;
@@ -12,6 +16,16 @@ function clearTokenCache() {
 
 // Spotify API base URL
 const SPOTIFY_API_BASE = 'https://api.spotify.com/v1';
+
+// Helper to wait before retrying
+async function waitForRateLimit() {
+  const now = Date.now();
+  if (rateLimitResetTime > now) {
+    const waitTime = rateLimitResetTime - now + 100; // Add 100ms buffer
+    console.log(`Rate limited. Waiting ${waitTime}ms before retry...`);
+    await new Promise(resolve => setTimeout(resolve, waitTime));
+  }
+}
 
 // Get access token using client credentials flow
 async function getAccessToken() {
@@ -90,6 +104,9 @@ async function getAccessToken() {
 async function searchTracks(query, limit = 10) {
   const token = await getAccessToken();
   
+  // Wait if we're rate limited
+  await waitForRateLimit();
+  
   try {
     const response = await axios.get(`${SPOTIFY_API_BASE}/search`, {
       params: {
@@ -101,6 +118,9 @@ async function searchTracks(query, limit = 10) {
         'Authorization': `Bearer ${token}`
       }
     });
+    
+    // Clear rate limit state on success
+    rateLimitResetTime = 0;
     
     return response.data.tracks.items.map(track => ({
       id: track.id,
@@ -114,6 +134,15 @@ async function searchTracks(query, limit = 10) {
     }));
   } catch (error) {
     console.error('Error searching tracks:', error.response?.data || error.message);
+    
+    // Handle rate limiting
+    if (error.response?.status === 429) {
+      const retryAfter = error.response.headers['retry-after'];
+      const waitMs = (retryAfter ? parseInt(retryAfter) : 5) * 1000;
+      rateLimitResetTime = Date.now() + waitMs;
+      console.log(`Rate limited by Spotify. Will retry after ${waitMs}ms`);
+    }
+    
     const errorMsg = error.response?.data?.error?.message || error.message;
     if (error.response?.status === 401) {
       throw new Error('Spotify authentication failed. Please check your credentials.');
@@ -128,12 +157,18 @@ async function searchTracks(query, limit = 10) {
 async function getTrack(trackId) {
   const token = await getAccessToken();
   
+  // Wait if we're rate limited
+  await waitForRateLimit();
+  
   try {
     const response = await axios.get(`${SPOTIFY_API_BASE}/tracks/${trackId}`, {
       headers: {
         'Authorization': `Bearer ${token}`
       }
     });
+    
+    // Clear rate limit state on success
+    rateLimitResetTime = 0;
     
     const track = response.data;
     return {
@@ -148,6 +183,15 @@ async function getTrack(trackId) {
     };
   } catch (error) {
     console.error('Error getting track:', error.response?.data || error.message);
+    
+    // Handle rate limiting
+    if (error.response?.status === 429) {
+      const retryAfter = error.response.headers['retry-after'];
+      const waitMs = (retryAfter ? parseInt(retryAfter) : 5) * 1000;
+      rateLimitResetTime = Date.now() + waitMs;
+      console.log(`Rate limited by Spotify. Will retry after ${waitMs}ms`);
+    }
+    
     throw new Error('Failed to get track');
   }
 }
@@ -233,6 +277,9 @@ async function getNowPlaying() {
 async function addToQueue(trackUri) {
   const token = await getAccessToken();
   
+  // Wait if we're rate limited
+  await waitForRateLimit();
+  
   try {
     await axios.post(`${SPOTIFY_API_BASE}/me/player/queue`, null, {
       params: {
@@ -243,9 +290,20 @@ async function addToQueue(trackUri) {
       }
     });
     
+    // Clear rate limit state on success
+    rateLimitResetTime = 0;
+    
     return true;
   } catch (error) {
     console.error('Error adding to queue:', error.response?.data || error.message);
+    
+    // Handle rate limiting
+    if (error.response?.status === 429) {
+      const retryAfter = error.response.headers['retry-after'];
+      const waitMs = (retryAfter ? parseInt(retryAfter) : 5) * 1000;
+      rateLimitResetTime = Date.now() + waitMs;
+      console.log(`Rate limited by Spotify. Will retry after ${waitMs}ms`);
+    }
     
     if (error.response?.status === 404) {
       throw new Error('No active Spotify device found. Please start playing music on a device.');
@@ -255,12 +313,65 @@ async function addToQueue(trackUri) {
   }
 }
 
+// Get current queue
+async function getQueue() {
+  const token = await getAccessToken();
+  
+  // Wait if we're rate limited
+  await waitForRateLimit();
+  
+  try {
+    const response = await axios.get(`${SPOTIFY_API_BASE}/me/player/queue`, {
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    });
+    
+    // Clear rate limit state on success
+    rateLimitResetTime = 0;
+    
+    return {
+      currently_playing: response.data.currently_playing ? {
+        id: response.data.currently_playing.id,
+        name: response.data.currently_playing.name,
+        artists: response.data.currently_playing.artists.map(a => a.name).join(', '),
+        album: response.data.currently_playing.album.name,
+        album_art: response.data.currently_playing.album.images[0]?.url || null,
+        duration_ms: response.data.currently_playing.duration_ms,
+        uri: response.data.currently_playing.uri
+      } : null,
+      queue: response.data.queue.map(track => ({
+        id: track.id,
+        name: track.name,
+        artists: track.artists.map(a => a.name).join(', '),
+        album: track.album.name,
+        album_art: track.album.images[0]?.url || null,
+        duration_ms: track.duration_ms,
+        uri: track.uri
+      }))
+    };
+  } catch (error) {
+    console.error('Error getting queue:', error.response?.data || error.message);
+    
+    // Handle rate limiting
+    if (error.response?.status === 429) {
+      const retryAfter = error.response.headers['retry-after'];
+      const waitMs = (retryAfter ? parseInt(retryAfter) : 5) * 1000;
+      rateLimitResetTime = Date.now() + waitMs;
+      console.log(`Rate limited by Spotify. Will retry after ${waitMs}ms`);
+    }
+    
+    throw new Error('Failed to get queue');
+  }
+}
+
 module.exports = {
   searchTracks,
   getTrack,
   parseSpotifyUrl,
   getNowPlaying,
   addToQueue,
+  getQueue,
   getAccessToken,
   clearTokenCache
 };

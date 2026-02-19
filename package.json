@@ -4,30 +4,37 @@
   "description": "Self-hosted Spotify queue management for events",
   "main": "server/index.js",
   "scripts": {
-    "dev": "concurrently \"npm run dev:server\" \"npm run dev:client\" \"npm run dev:admin\"",
+    "dev": "concurrently \"npm run dev:server\" \"npm run dev:client\"",
     "dev:server": "nodemon server/index.js",
-    "dev:client": "cd client && npm start",
-    "dev:admin": "cd admin && npx cross-env PORT=3002 BROWSER=none npm start",
-    "build": "cd client && npm run build && cd ../admin && npm run build",
+    "dev:client": "cd client && npm run dev",
+    "build": "cd client && npm run build",
     "start": "node server/index.js",
-    "install:all": "npm install && cd client && npm install && cd ../admin && npm install"
+    "install:all": "npm install && cd client && npm install"
   },
-  "keywords": ["spotify", "queue", "event"],
+  "keywords": [
+    "spotify",
+    "queue",
+    "event"
+  ],
   "author": "",
   "license": "MIT",
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=9.0.0"
+  },
   "dependencies": {
-    "express": "^4.18.2",
+    "@slack/bolt": "^4.6.0",
+    "axios": "^1.6.2",
+    "sql.js": "^1.8.0",
+    "cookie-parser": "^1.4.6",
     "cors": "^2.8.5",
     "dotenv": "^16.3.1",
-    "express-rate-limit": "^7.1.5",
-    "cookie-parser": "^1.4.6",
-    "better-sqlite3": "^9.2.2",
-    "axios": "^1.6.2",
-    "express-basic-auth": "^1.2.1"
+    "express": "^4.18.2",
+    "express-basic-auth": "^1.2.1",
+    "express-rate-limit": "^7.1.5"
   },
   "devDependencies": {
-    "nodemon": "^3.0.2",
-    "concurrently": "^8.2.2"
+    "concurrently": "^8.2.2",
+    "nodemon": "^3.0.2"
   }
 }
-

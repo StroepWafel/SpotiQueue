@@ -23,14 +23,14 @@ router.get('/authorize', (req, res) => {
   const clientId = process.env.SPOTIFY_CLIENT_ID;
   
   // Determine redirect URI
-  // In development: backend runs on 5000, so use 5000
+  // In development: backend runs on 8000, so use 8000
   // In production: backend runs on 3000, so use 3000
   // Spotify no longer allows "localhost" - must use 127.0.0.1
   // Or use SPOTIFY_REDIRECT_URI from env if explicitly set
   let redirectUri = process.env.SPOTIFY_REDIRECT_URI;
   if (!redirectUri) {
     const isProduction = process.env.NODE_ENV === 'production';
-    const backendPort = isProduction ? 3000 : 5000;
+    const backendPort = isProduction ? 3000 : 8000;
     redirectUri = `http://127.0.0.1:${backendPort}/api/auth/callback`;
   }
   
@@ -88,7 +88,7 @@ router.get('/callback', async (req, res) => {
     let redirectUri = process.env.SPOTIFY_REDIRECT_URI;
     if (!redirectUri) {
       const isProduction = process.env.NODE_ENV === 'production';
-      const backendPort = isProduction ? 3000 : 5000;
+      const backendPort = isProduction ? 3000 : 8000;
       redirectUri = `http://127.0.0.1:${backendPort}/api/auth/callback`;
     }
     
@@ -170,13 +170,13 @@ router.get('/callback', async (req, res) => {
     // Update config in database
     setConfig('spotify_connected', 'true');
     
-    // Get admin panel URL from config, default to placeholder if not set
+    // Get admin panel URL from config, default to root if not set
     const adminPanelUrl = getConfig('admin_panel_url');
-    let redirectUrl = (adminPanelUrl && adminPanelUrl.trim() !== '') ? adminPanelUrl : 'ChangeURLInSettings.com';
+    let redirectUrl = (adminPanelUrl && adminPanelUrl.trim() !== '') ? adminPanelUrl : '/';
     
-    // Ensure URL is absolute (starts with http:// or https://)
-    // If it doesn't start with a protocol, prepend https://
-    if (redirectUrl !== 'ChangeURLInSettings.com' && !redirectUrl.match(/^https?:\/\//i)) {
+    // Ensure URL is absolute (starts with http:// or https://) or relative
+    // If it doesn't start with a protocol or /, prepend https://
+    if (!redirectUrl.match(/^(https?:\/\/|\/)/i)) {
       redirectUrl = 'https://' + redirectUrl;
     }
     
