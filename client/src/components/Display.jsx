@@ -165,11 +165,7 @@ export default function Display() {
         const res = await axios.get('/api/queue/current', { timeout: 8000 })
         if (cancelled) return
         const queue = res.data?.queue?.slice(0, 20) ?? []
-        // Filter out the finished track from the visual queue
-        const filtered = finishedTrackId
-          ? queue.filter(t => t.id !== finishedTrackId)
-          : queue
-        setUpNext(filtered)
+        setUpNext(queue)
       } catch {
         // keep showing last known queue - no state reset
       }
@@ -182,15 +178,9 @@ export default function Display() {
 
   // Remove first item from queue when song finishes
   useEffect(() => {
-    console.log('finishedTrackId changed:', finishedTrackId)
     if (finishedTrackId) {
       console.log('Removing first item from queue')
-      console.log('Current upNext before removal:', upNext)
-      setUpNext(prev => {
-        const filtered = prev.slice(1) // Remove first item
-        console.log('Filtered upNext (removed first):', filtered)
-        return filtered
-      })
+      setUpNext(prev => prev.slice(1))
     }
   }, [finishedTrackId])
 
