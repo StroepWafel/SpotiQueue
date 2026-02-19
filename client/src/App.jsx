@@ -19,6 +19,7 @@ import { Input } from './components/ui/input'
 import { Card, CardContent, CardHeader, CardTitle } from './components/ui/card'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from './components/ui/tabs'
 import { Music, ArrowLeft, Github } from 'lucide-react'
+import { useAuraColor } from './hooks/useAuraColor'
 
 axios.defaults.withCredentials = true
 
@@ -30,6 +31,10 @@ function ClientPage() {
   const [username, setUsername] = useState('')
   const [usernameError, setUsernameError] = useState('')
   const [githubAvailable, setGithubAvailable] = useState(false)
+  const [auraEnabled, setAuraEnabled] = useState(false)
+  const [myTrackId, setMyTrackId] = useState(null)
+
+  const auraColor = useAuraColor(auraEnabled ? nowPlaying?.album_art : null)
 
   useEffect(() => {
     // Check URL params for GitHub callback
@@ -67,6 +72,11 @@ function ClientPage() {
 
     updateNowPlaying()
     const interval = setInterval(updateNowPlaying, 3000)
+
+    axios.get('/api/config/public/aura_enabled')
+      .then(res => setAuraEnabled(res.data?.value !== 'false'))
+      .catch(() => {})
+
     return () => clearInterval(interval)
   }, [])
 
@@ -162,14 +172,22 @@ function ClientPage() {
         </div>
       </header>
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 py-6">
+      <main
+        className="max-w-7xl mx-auto px-4 sm:px-6 py-6"
+        style={auraColor ? {
+          background: `radial-gradient(ellipse 80% 40% at 20% 0%, rgba(${auraColor}, 0.12) 0%, transparent 70%)`
+        } : {}}
+      >
         <div className="grid grid-cols-1 lg:grid-cols-[1fr_380px] gap-6">
           <div className="space-y-6">
-            <NowPlaying track={nowPlaying} />
-            <QueueForm fingerprintId={fingerprintId} />
+            <NowPlaying track={nowPlaying} auraColor={auraColor} />
+            <QueueForm
+              fingerprintId={fingerprintId}
+              onQueued={(trackId) => setMyTrackId(trackId)}
+            />
           </div>
           <div className="lg:sticky lg:top-20 lg:self-start">
-            <Queue fingerprintId={fingerprintId} />
+            <Queue fingerprintId={fingerprintId} myTrackId={myTrackId} />
           </div>
         </div>
       </main>

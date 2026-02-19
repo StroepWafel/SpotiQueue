@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import axios from 'axios'
+import confetti from 'canvas-confetti'
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card'
 import { Button } from './ui/button'
 import { Input } from './ui/input'
@@ -8,7 +9,7 @@ import { Badge } from './ui/badge'
 import { useToast } from './ui/toast'
 import { Search, Link as LinkIcon, Loader2, Music, Clock } from 'lucide-react'
 
-function QueueForm({ fingerprintId }) {
+function QueueForm({ fingerprintId, onQueued }) {
   const [searchQuery, setSearchQuery] = useState('')
   const [urlInput, setUrlInput] = useState('')
   const [searchResults, setSearchResults] = useState([])
@@ -17,12 +18,18 @@ function QueueForm({ fingerprintId }) {
   const [inputMethod, setInputMethod] = useState('search')
   const [prequeueEnabled, setPrequeueEnabled] = useState(false)
   const [cooldownRemaining, setCooldownRemaining] = useState(0)
+  const [confettiEnabled, setConfettiEnabled] = useState(false)
+  const [myQueuedTrack, setMyQueuedTrack] = useState(null)
   const { toast } = useToast()
 
   useEffect(() => {
     axios.get('/api/config/public/prequeue_enabled')
       .then(res => setPrequeueEnabled(res.data.value === 'true'))
       .catch(() => setPrequeueEnabled(false))
+
+    axios.get('/api/config/public/confetti_enabled')
+      .then(res => setConfettiEnabled(res.data?.value !== 'false'))
+      .catch(() => {})
   }, [])
 
   // Cooldown countdown timer
@@ -43,6 +50,38 @@ function QueueForm({ fingerprintId }) {
     return `${mins}:${String(secs).padStart(2, '0')}`
   }
 
+  const fireConfetti = () => {
+    try {
+      confetti({
+        particleCount: 120,
+        spread: 80,
+        origin: { y: 0.4 },
+        colors: ['#22c55e', '#3b82f6', '#f59e0b', '#ec4899', '#8b5cf6']
+      })
+    } catch {
+      // non-critical
+    }
+  }
+
+  const fetchQueuePosition = async (trackId) => {
+    try {
+      const res = await axios.get('/api/queue/current', { timeout: 5000 })
+      const queue = res.data?.queue ?? []
+      const idx = queue.findIndex(t => t.id === trackId)
+      if (idx === -1) return { position: null, waitMs: null }
+      const waitMs = queue.slice(0, idx).reduce((sum, t) => sum + (t.duration_ms ?? 0), 0)
+      return { position: idx + 1, waitMs }
+    } catch {
+      return { position: null, waitMs: null }
+    }
+  }
+
+  const formatWait = (ms) => {
+    if (!ms && ms !== 0) return null
+    const mins = Math.round(ms / 60000)
+    return mins < 1 ? 'up next' : `~${mins} min away`
+  }
+
   const handleSearch = async (e) => {
     e.preventDefault()
     if (!searchQuery.trim()) return
@@ -59,10 +98,29 @@ function QueueForm({ fingerprintId }) {
 
   const handleQueueTrack = async (trackId) => {
     setIsQueueing(true)
+    setMyQueuedTrack(null)
     try {
       const endpoint = prequeueEnabled ? '/api/prequeue/submit' : '/api/queue/add'
       const response = await axios.post(endpoint, { fingerprint_id: fingerprintId, track_id: trackId })
       toast({ title: 'Success', description: response.data.message || 'Track queued!', variant: 'success' })
+
+      if (confettiEnabled) fireConfetti()
+
+      if (onQueued) onQueued(trackId)
+
+      const track = searchResults.find(t => t.id === trackId)
+      if (track) {
+        fetchQueuePosition(trackId).then(({ position, waitMs }) => {
+          setMyQueuedTrack({
+            id: trackId,
+            name: track.name,
+            artists: track.artists,
+            album_art: track.album_art,
+            position,
+            waitMs
+          })
+        })
+      }
     } catch (error) {
       const errorMsg = error.response?.data?.error || 'Failed to queue track'
       if (error.response?.data?.cooldown_remaining) {
@@ -83,6 +141,7 @@ function QueueForm({ fingerprintId }) {
       const response = await axios.post(endpoint, { fingerprint_id: fingerprintId, track_url: urlInput })
       toast({ title: 'Success', description: response.data.message || 'Track queued!', variant: 'success' })
       setUrlInput('')
+      if (confettiEnabled) fireConfetti()
     } catch (error) {
       const errorMsg = error.response?.data?.error || 'Failed to queue track'
       if (error.response?.data?.cooldown_remaining) {
@@ -185,6 +244,30 @@ function QueueForm({ fingerprintId }) {
             </form>
           </TabsContent>
         </Tabs>
+
+        {myQueuedTrack && (
+          <div className="mt-4 p-3 rounded-lg border-2 border-primary/30 bg-primary/5 flex items-center gap-3">
+            {myQueuedTrack.album_art ? (
+              <img src={myQueuedTrack.album_art} alt="" className="w-10 h-10 rounded object-cover shrink-0" />
+            ) : (
+              <div className="w-10 h-10 rounded bg-muted flex items-center justify-center shrink-0">
+                <Music className="h-4 w-4 text-muted-foreground" />
+              </div>
+            )}
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-semibold truncate">{myQueuedTrack.name}</p>
+              <p className="text-xs text-muted-foreground truncate">{myQueuedTrack.artists}</p>
+            </div>
+            <div className="text-right shrink-0">
+              {myQueuedTrack.position && (
+                <p className="text-xs font-bold text-primary">#{myQueuedTrack.position} in queue</p>
+              )}
+              {myQueuedTrack.waitMs != null && (
+                <p className="text-xs text-muted-foreground">{formatWait(myQueuedTrack.waitMs)}</p>
+              )}
+            </div>
+          </div>
+        )}
       </CardContent>
     </Card>
   )

@@ -86,6 +86,21 @@ function Configuration() {
         </CardContent>
       </Card>
 
+      {/* Visual & Social */}
+      <Card>
+        <CardHeader><CardTitle className="text-lg">Visual & Social</CardTitle></CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex items-center justify-between">
+            <div><Label>Album Aura (Color Theming)</Label><p className="text-xs text-muted-foreground">Page accent color follows the current song's album art</p></div>
+            <Switch checked={config.aura_enabled !== 'false'} onCheckedChange={(v) => updateConfig('aura_enabled', v ? 'true' : 'false')} />
+          </div>
+          <div className="flex items-center justify-between">
+            <div><Label>Confetti on Queue</Label><p className="text-xs text-muted-foreground">Burst of confetti when a song is added to the queue</p></div>
+            <Switch checked={config.confetti_enabled !== 'false'} onCheckedChange={(v) => updateConfig('confetti_enabled', v ? 'true' : 'false')} />
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Rate Limiting */}
       <Card>
         <CardHeader><CardTitle className="text-lg">Rate Limiting</CardTitle></CardHeader>

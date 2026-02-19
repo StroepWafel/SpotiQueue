@@ -34,7 +34,7 @@ function formatDuration(ms) {
   return `${Math.floor(ms / 60000)}:${String(Math.floor((ms % 60000) / 1000)).padStart(2, '0')}`
 }
 
-export default function Queue({ fingerprintId }) {
+export default function Queue({ fingerprintId, myTrackId }) {
   const [queue, setQueue] = useState(() => readCache())
   const [loading, setLoading] = useState(() => !readCache())
   const [votes, setVotes] = useState({})
@@ -199,6 +199,11 @@ export default function Queue({ fingerprintId }) {
                 )}
                 <div className="flex-1 min-w-0">
                   <div className="text-sm font-medium truncate">{track.name}</div>
+                  {myTrackId === track.id && (
+                    <span className="text-[10px] font-bold uppercase tracking-wide text-primary bg-primary/10 px-1.5 py-0.5 rounded mt-0.5 inline-block">
+                      you
+                    </span>
+                  )}
                   <div className="text-xs text-muted-foreground truncate">{track.artists}</div>
                 </div>
                 {fingerprintId && (
