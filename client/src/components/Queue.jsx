@@ -93,9 +93,9 @@ function Queue({ fingerprintId }) {
             key={track.id}
             className="flex items-center gap-3 p-3 rounded-lg border bg-card"
           >
-            <span className="text-sm text-muted-foreground w-6">{i + 1}</span>
+            <span className="text-sm text-muted-foreground w-6 shrink-0">{i + 1}</span>
             {track.album_art && (
-              <img src={track.album_art} alt="" className="w-10 h-10 rounded object-cover shrink-0" />
+              <img src={track.album_art} alt="" className="w-10 h-10 sm:w-12 sm:h-12 rounded-lg object-cover shrink-0" />
             )}
             <div className="flex-1 min-w-0">
               <div className="font-medium truncate">{track.name}</div>
@@ -107,7 +107,7 @@ function Queue({ fingerprintId }) {
                   variant={userVotes[track.id] === 1 ? 'default' : 'outline'}
                   size="sm"
                   onClick={() => handleVote(track.id, 1)}
-                  className="h-8 px-2"
+                  className="h-9 w-9 sm:h-8 sm:w-auto sm:px-2 p-0 touch-manipulation"
                 >
                   <ThumbsUp className={cn('h-4 w-4', userVotes[track.id] === 1 && 'fill-current')} />
                 </Button>
@@ -116,7 +116,7 @@ function Queue({ fingerprintId }) {
                     variant={userVotes[track.id] === -1 ? 'destructive' : 'outline'}
                     size="sm"
                     onClick={() => handleVote(track.id, -1)}
-                    className="h-8 px-2"
+                    className="h-9 w-9 sm:h-8 sm:w-auto sm:px-2 p-0 touch-manipulation"
                   >
                     <ThumbsDown className={cn('h-4 w-4', userVotes[track.id] === -1 && 'fill-current')} />
                   </Button>

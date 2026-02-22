@@ -190,8 +190,12 @@ if (!isProduction) {
 
 // Serve admin panel static files in production only
 if (isProduction) {
-  adminApp.use(express.static(path.join(__dirname, '../admin/build')));
-  adminApp.get('*', (req, res) => {
+  adminApp.get('/', (req, res) => res.redirect('/admin'));
+  adminApp.use('/admin', express.static(path.join(__dirname, '../admin/build'), { index: false }));
+  adminApp.get('/admin', (req, res) => {
+    res.sendFile(path.join(__dirname, '../admin/build/index.html'));
+  });
+  adminApp.get('/admin/*', (req, res) => {
     res.sendFile(path.join(__dirname, '../admin/build/index.html'));
   });
 }

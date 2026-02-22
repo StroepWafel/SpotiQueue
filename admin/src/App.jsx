@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import axios from 'axios'
+import { Menu, X } from 'lucide-react'
 import { ThemeToggle } from './components/theme-toggle'
 import DeviceManagement from './components/DeviceManagement'
 import BannedTracks from './components/BannedTracks'
@@ -16,6 +17,7 @@ axios.defaults.withCredentials = true
 function App() {
   const [activeTab, setActiveTab] = useState('spotify')
   const [authError, setAuthError] = useState(false)
+  const [sidebarOpen, setSidebarOpen] = useState(false)
 
   useEffect(() => {
     axios.get('/api/admin/stats').catch(error => {
@@ -45,15 +47,69 @@ function App() {
     { id: 'stats', label: 'Statistics' },
   ]
 
+  const selectTab = (id) => {
+    setActiveTab(id)
+    setSidebarOpen(false)
+  }
+
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen min-h-[100dvh] bg-background">
       <header className="border-b px-4 py-3 flex items-center justify-between">
-        <h1 className="text-xl font-bold">SpotiQueue Admin</h1>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setSidebarOpen(true)}
+            className="md:hidden p-2 -ml-2 rounded-lg hover:bg-accent text-foreground touch-manipulation"
+            aria-label="Open menu"
+          >
+            <Menu className="h-6 w-6" />
+          </button>
+          <h1 className="text-xl font-bold">SpotiQueue Admin</h1>
+        </div>
         <ThemeToggle />
       </header>
 
+      {/* Mobile full-screen overlay */}
+      {sidebarOpen && (
+        <div
+          className="fixed inset-0 z-50 md:hidden"
+          role="dialog"
+          aria-label="Navigation menu"
+        >
+          <div
+            className="absolute inset-0 bg-black/60"
+            onClick={() => setSidebarOpen(false)}
+            aria-hidden="true"
+          />
+          <div className="absolute inset-0 flex flex-col p-6 pt-16 bg-background pointer-events-none">
+            <button
+              onClick={() => setSidebarOpen(false)}
+              className="absolute top-4 right-4 p-2 rounded-lg hover:bg-accent text-foreground touch-manipulation pointer-events-auto"
+              aria-label="Close menu"
+            >
+              <X className="h-6 w-6" />
+            </button>
+            <nav className="flex flex-col gap-2 flex-1 justify-center pointer-events-auto">
+              {tabs.map((tab) => (
+                <button
+                  key={tab.id}
+                  onClick={() => selectTab(tab.id)}
+                  className={cn(
+                    'text-left px-6 py-4 rounded-xl text-lg font-medium transition-colors',
+                    activeTab === tab.id
+                      ? 'bg-primary text-primary-foreground'
+                      : 'hover:bg-accent text-foreground'
+                  )}
+                >
+                  {tab.label}
+                </button>
+              ))}
+            </nav>
+          </div>
+        </div>
+      )}
+
       <div className="flex">
-        <nav className="w-48 border-r p-4 flex flex-col gap-1 shrink-0">
+        <nav className="hidden md:flex w-48 border-r p-4 flex-col gap-1 shrink-0">
           {tabs.map((tab) => (
             <button
               key={tab.id}
@@ -70,7 +126,7 @@ function App() {
           ))}
         </nav>
 
-        <main className="flex-1 p-6 overflow-auto">
+        <main className="flex-1 p-4 sm:p-6 overflow-auto">
           {activeTab === 'spotify' && <SpotifyConnect />}
           {activeTab === 'qr' && <QrCode />}
           {activeTab === 'prequeue' && <PrequeueManagement />}

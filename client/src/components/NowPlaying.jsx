@@ -52,12 +52,12 @@ function NowPlaying({ track }) {
 
   return (
     <div className="mb-6 rounded-xl border bg-card overflow-hidden">
-      <div className="flex gap-4 p-4">
+      <div className="flex gap-3 sm:gap-4 p-3 sm:p-4">
         {track.album_art ? (
-          <img src={track.album_art} alt={track.album} className="w-20 h-20 rounded-lg object-cover shrink-0" />
+          <img src={track.album_art} alt={track.album} className="w-16 h-16 sm:w-20 sm:h-20 rounded-lg object-cover shrink-0" />
         ) : (
-          <div className="w-20 h-20 rounded-lg bg-muted flex items-center justify-center shrink-0">
-            <Music className="h-10 w-10 text-muted-foreground" />
+          <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-lg bg-muted flex items-center justify-center shrink-0">
+            <Music className="h-8 w-8 sm:h-10 sm:w-10 text-muted-foreground" />
           </div>
         )}
 

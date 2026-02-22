@@ -109,12 +109,13 @@ function QueueForm({ fingerprintId }) {
           </div>
         )}
 
-        <div className="flex gap-2 mb-4">
+        <div className="flex gap-2 mb-4 flex-wrap">
           {config.search_ui_enabled !== 'false' && (
             <Button
               variant={inputMethod === 'search' ? 'default' : 'outline'}
               size="sm"
               onClick={() => setInputMethod('search')}
+              className="min-h-[44px] px-4 touch-manipulation"
             >
               Search
             </Button>
@@ -124,6 +125,7 @@ function QueueForm({ fingerprintId }) {
               variant={inputMethod === 'url' ? 'default' : 'outline'}
               size="sm"
               onClick={() => setInputMethod('url')}
+              className="min-h-[44px] px-4 touch-manipulation"
             >
               Paste URL
             </Button>
@@ -132,16 +134,17 @@ function QueueForm({ fingerprintId }) {
 
         {inputMethod === 'search' && (
           <div className="space-y-4">
-            <form onSubmit={handleSearch} className="flex gap-2">
+            <form onSubmit={handleSearch} className="flex flex-col sm:flex-row gap-2">
               <Input
-                type="text"
+                type="search"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Search for a song..."
                 disabled={isSearching || isQueueing}
-                className="flex-1"
+                className="flex-1 min-h-[44px] text-base sm:text-sm"
+                autoComplete="off"
               />
-              <Button type="submit" disabled={isSearching || isQueueing || !searchQuery.trim()}>
+              <Button type="submit" disabled={isSearching || isQueueing || !searchQuery.trim()} className="min-h-[44px] touch-manipulation shrink-0">
                 {isSearching ? 'Searching...' : 'Search'}
               </Button>
             </form>
@@ -151,11 +154,11 @@ function QueueForm({ fingerprintId }) {
                 {searchResults.map((track) => (
                   <div
                     key={track.id}
-                    className="flex items-center gap-3 p-3 rounded-lg border hover:bg-accent/50 cursor-pointer transition-colors"
+                    className="flex items-center gap-3 p-3 rounded-lg border hover:bg-accent/50 active:bg-accent/70 cursor-pointer transition-colors touch-manipulation"
                     onClick={() => handleQueueTrack(track.id)}
                   >
                     {track.album_art && (
-                      <img src={track.album_art} alt={track.album} className="w-12 h-12 rounded object-cover shrink-0" />
+                      <img src={track.album_art} alt={track.album} className="w-12 h-12 sm:w-14 sm:h-14 rounded-lg object-cover shrink-0" />
                     )}
                     <div className="flex-1 min-w-0">
                       <div className="font-medium truncate flex items-center gap-2">
@@ -164,7 +167,7 @@ function QueueForm({ fingerprintId }) {
                       </div>
                       <div className="text-sm text-muted-foreground truncate">{track.artists}</div>
                     </div>
-                    <Button size="sm" onClick={(e) => { e.stopPropagation(); handleQueueTrack(track.id) }} disabled={isQueueing}>
+                    <Button size="sm" onClick={(e) => { e.stopPropagation(); handleQueueTrack(track.id) }} disabled={isQueueing} className="min-h-[40px] min-w-[64px] touch-manipulation shrink-0">
                       Queue
                     </Button>
                   </div>
@@ -177,18 +180,20 @@ function QueueForm({ fingerprintId }) {
         {inputMethod === 'url' && (
           <form onSubmit={handleQueueUrl} className="space-y-4">
             <Input
-              type="text"
+              type="url"
+              inputMode="url"
               value={urlInput}
               onChange={(e) => setUrlInput(e.target.value)}
-              placeholder="Paste Spotify track URL (e.g., https://open.spotify.com/track/...)"
+              placeholder="Paste Spotify track URL"
               disabled={isQueueing}
+              className="min-h-[44px] text-base sm:text-sm"
             />
             <div className="text-xs text-muted-foreground space-y-1">
               <div>Examples:</div>
               <code className="block break-all">https://open.spotify.com/track/4uLU6hMCjMI75M1A2tKUQC</code>
               <code className="block break-all">spotify:track:4uLU6hMCjMI75M1A2tKUQC</code>
             </div>
-            <Button type="submit" disabled={isQueueing || !urlInput.trim()} className="w-full">
+            <Button type="submit" disabled={isQueueing || !urlInput.trim()} className="w-full min-h-[44px] touch-manipulation">
               {isQueueing ? 'Queueing...' : 'Queue Track'}
             </Button>
           </form>

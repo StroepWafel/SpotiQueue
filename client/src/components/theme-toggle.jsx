@@ -13,7 +13,7 @@ export function ThemeToggle() {
   return (
     <button
       onClick={cycle}
-      className="inline-flex items-center justify-center rounded-lg p-2 text-muted-foreground hover:bg-accent hover:text-accent-foreground transition-colors"
+      className="inline-flex items-center justify-center rounded-lg p-2 min-h-[44px] min-w-[44px] text-muted-foreground hover:bg-accent hover:text-accent-foreground transition-colors touch-manipulation -mr-1"
       title={`Theme: ${theme}`}
     >
       {theme === 'light' && <Sun className="h-5 w-5" />}
