@@ -113,14 +113,14 @@ function QrCode() {
             <div className="flex-1 min-w-0 space-y-4">
               <div>
                 <label className="block text-sm font-medium mb-1">Queue URL</label>
-                <div className="flex gap-2">
+                <div className="flex flex-col sm:flex-row gap-2">
                   <Input
                     value={customUrl}
                     onChange={(e) => setCustomUrl(e.target.value)}
                     placeholder="https://your-queue.com"
-                    className="font-mono text-sm"
+                    className="font-mono text-sm w-full"
                   />
-                  <Button variant="outline" size="sm" onClick={handleCopy} disabled={!displayUrl}>
+                  <Button variant="outline" size="sm" onClick={handleCopy} disabled={!displayUrl} className="sm:shrink-0">
                     {copied ? 'Copied!' : 'Copy'}
                   </Button>
                 </div>

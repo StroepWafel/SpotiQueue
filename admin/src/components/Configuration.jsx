@@ -6,12 +6,12 @@ import { Input } from './ui/input'
 
 function ConfigItem({ label, children, saveKey, saveVal, help, config, updateConfig }) {
   return (
-    <div className="flex flex-wrap items-center gap-4 py-3 border-b last:border-0">
+    <div className="flex flex-col sm:flex-row sm:items-center gap-4 py-3 border-b last:border-0">
       <div className="flex-1 min-w-0">
         {label}
         {help && <p className="text-xs text-muted-foreground mt-1">{help}</p>}
       </div>
-      <div className="flex items-center gap-2">
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto">
         {children}
         <Button size="sm" onClick={() => updateConfig(saveKey, saveVal !== undefined ? saveVal : config[saveKey])}>Save</Button>
       </div>
@@ -107,10 +107,10 @@ function Configuration() {
         <CardContent className="pt-6">
           <h2 className="text-lg font-semibold mb-4">Rate Limiting</h2>
           <ConfigItem config={config} updateConfig={updateConfig} label={<><span className="block font-medium">Cooldown Duration (seconds)</span><p className="text-xs text-muted-foreground mt-1">Time between queue attempts</p></>} saveKey="cooldown_duration" saveVal={config.cooldown_duration}>
-            <Input type="number" value={config.cooldown_duration || '300'} onChange={(e) => handleChange('cooldown_duration', e.target.value)} min="0" className="w-24" />
+            <Input type="number" value={config.cooldown_duration || '300'} onChange={(e) => handleChange('cooldown_duration', e.target.value)} min="0" className="w-full sm:w-24" />
           </ConfigItem>
           <ConfigItem config={config} updateConfig={updateConfig} label={<><span className="block font-medium">Songs Before Cooldown</span><p className="text-xs text-muted-foreground mt-1">Songs a user can queue before cooldown starts</p></>} saveKey="songs_before_cooldown" saveVal={config.songs_before_cooldown || '1'}>
-            <Input type="number" value={config.songs_before_cooldown || '1'} onChange={(e) => handleChange('songs_before_cooldown', e.target.value)} min="1" className="w-20" />
+            <Input type="number" value={config.songs_before_cooldown || '1'} onChange={(e) => handleChange('songs_before_cooldown', e.target.value)} min="1" className="w-full sm:w-20" />
           </ConfigItem>
           <ConfigItem config={config} updateConfig={updateConfig} label={<label className="flex items-center gap-2"><input type="checkbox" checked={config.fingerprinting_enabled === 'true'} onChange={(e) => handleChange('fingerprinting_enabled', e.target.checked ? 'true' : 'false')} /> Enable Fingerprinting & Cooldown</label>} saveKey="fingerprinting_enabled" />
         </CardContent>
@@ -166,7 +166,7 @@ function Configuration() {
         <CardContent className="pt-6">
           <h2 className="text-lg font-semibold mb-4">URLs</h2>
           <ConfigItem config={config} updateConfig={updateConfig} label="Queue URL:" saveKey="queue_url" help="Public URL for the queue (used in QR codes on Display mode and admin). Leave empty to use current host or CLIENT_URL.">
-            <Input type="text" value={config.queue_url || ''} onChange={(e) => handleChange('queue_url', e.target.value)} placeholder="https://queue.example.com" className="w-64" />
+            <Input type="text" value={config.queue_url || ''} onChange={(e) => handleChange('queue_url', e.target.value)} placeholder="https://queue.example.com" className="w-full sm:w-64" />
           </ConfigItem>
         </CardContent>
       </Card>
@@ -175,10 +175,10 @@ function Configuration() {
         <CardContent className="pt-6">
           <h2 className="text-lg font-semibold mb-4">Security</h2>
           <ConfigItem config={config} updateConfig={updateConfig} label="Admin Password:" saveKey="admin_password">
-            <Input type="password" value={config.admin_password || ''} onChange={(e) => handleChange('admin_password', e.target.value)} placeholder="Enter new password" className="w-48" />
+            <Input type="password" value={config.admin_password || ''} onChange={(e) => handleChange('admin_password', e.target.value)} placeholder="Enter new password" className="w-full sm:w-48" />
           </ConfigItem>
           <ConfigItem config={config} updateConfig={updateConfig} label="Admin Panel Redirect URL:" saveKey="admin_panel_url" help="Full URL for 'Go to Admin Panel' after Spotify auth.">
-            <Input type="text" value={config.admin_panel_url || ''} onChange={(e) => handleChange('admin_panel_url', e.target.value)} placeholder="https://admin.url.com" className="w-64" />
+            <Input type="text" value={config.admin_panel_url || ''} onChange={(e) => handleChange('admin_panel_url', e.target.value)} placeholder="https://admin.url.com" className="w-full sm:w-64" />
           </ConfigItem>
         </CardContent>
       </Card>

@@ -80,24 +80,24 @@ function DeviceManagement() {
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap gap-4 items-center">
-        <div className="flex gap-2 items-center">
-          <label className="text-sm">Filter:</label>
-          <select value={filter} onChange={(e) => setFilter(e.target.value)} className="h-9 rounded-md border px-3 text-sm bg-background">
+      <div className="flex flex-col sm:flex-row flex-wrap gap-4">
+        <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2 min-w-0">
+          <label className="text-sm font-medium sm:font-normal shrink-0">Filter:</label>
+          <select value={filter} onChange={(e) => setFilter(e.target.value)} className="h-9 rounded-md border px-3 text-sm bg-background w-full sm:w-auto">
             <option value="all">All Devices</option>
             <option value="active">Active</option>
             <option value="blocked">Blocked</option>
           </select>
         </div>
-        <div className="flex gap-2 items-center">
-          <label className="text-sm">Sort by:</label>
-          <select value={sortBy} onChange={(e) => setSortBy(e.target.value)} className="h-9 rounded-md border px-3 text-sm bg-background">
+        <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2 min-w-0">
+          <label className="text-sm font-medium sm:font-normal shrink-0">Sort by:</label>
+          <select value={sortBy} onChange={(e) => setSortBy(e.target.value)} className="h-9 rounded-md border px-3 text-sm bg-background w-full sm:w-auto">
             <option value="last_queue_attempt">Last Activity</option>
             <option value="first_seen">First Seen</option>
             <option value="cooldown_expires">Cooldown Expiry</option>
           </select>
         </div>
-        <Button variant="outline" size="sm" onClick={resetAllCooldowns}>Reset All Cooldowns</Button>
+        <Button variant="outline" size="sm" onClick={resetAllCooldowns} className="self-start">Reset All Cooldowns</Button>
       </div>
 
       <Card>
