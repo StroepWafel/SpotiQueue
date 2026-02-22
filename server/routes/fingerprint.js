@@ -2,6 +2,7 @@ const express = require('express');
 const crypto = require('crypto');
 const { getDb } = require('../db');
 const { getConfig } = require('../utils/config');
+const { getGuestAuthRequirements } = require('../utils/guest-auth');
 
 const router = express.Router();
 const db = getDb();
@@ -53,10 +54,16 @@ router.post('/generate', (req, res) => {
   });
   
   const fingerprint = db.prepare('SELECT * FROM fingerprints WHERE id = ?').get(fingerprintId);
-  res.json({ 
+  const authReq = getGuestAuthRequirements(fingerprint);
+
+  res.json({
     fingerprint_id: fingerprintId,
     username: fingerprint.username,
-    requires_username: requireUsername && !fingerprint.username
+    requires_username: requireUsername && !fingerprint.username,
+    requires_github_auth: authReq.needsGithubAuth,
+    requires_google_auth: authReq.needsGoogleAuth,
+    github_oauth_configured: authReq.githubOAuthConfigured,
+    google_oauth_configured: authReq.googleOAuthConfigured
   });
 });
 

@@ -255,12 +255,50 @@ async function addToQueue(trackUri) {
   }
 }
 
+// Get current queue
+async function getQueue() {
+  const token = await getAccessToken();
+
+  try {
+    const response = await axios.get(`${SPOTIFY_API_BASE}/me/player/queue`, {
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    });
+
+    return {
+      currently_playing: response.data.currently_playing ? {
+        id: response.data.currently_playing.id,
+        name: response.data.currently_playing.name,
+        artists: response.data.currently_playing.artists.map(a => a.name).join(', '),
+        album: response.data.currently_playing.album.name,
+        album_art: response.data.currently_playing.album.images[0]?.url || null,
+        duration_ms: response.data.currently_playing.duration_ms,
+        uri: response.data.currently_playing.uri
+      } : null,
+      queue: (response.data.queue || []).map(track => ({
+        id: track.id,
+        name: track.name,
+        artists: track.artists.map(a => a.name).join(', '),
+        album: track.album.name,
+        album_art: track.album.images[0]?.url || null,
+        duration_ms: track.duration_ms,
+        uri: track.uri
+      }))
+    };
+  } catch (error) {
+    console.error('Error getting queue:', error.response?.data || error.message);
+    throw new Error('Failed to get queue');
+  }
+}
+
 module.exports = {
   searchTracks,
   getTrack,
   parseSpotifyUrl,
   getNowPlaying,
   addToQueue,
+  getQueue,
   getAccessToken,
   clearTokenCache
 };

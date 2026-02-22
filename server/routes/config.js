@@ -4,6 +4,19 @@ const { getConfig, setConfig, getAllConfig } = require('../utils/config');
 
 const router = express.Router();
 
+// Public config (no auth) - for client to know prequeue, voting, aura, etc.
+router.get('/public', (req, res) => {
+  const queueUrl = getConfig('queue_url') || process.env.CLIENT_URL || '';
+  res.json({
+    prequeue_enabled: getConfig('prequeue_enabled') === 'true',
+    voting_enabled: getConfig('voting_enabled') === 'true',
+    voting_auto_promote: getConfig('voting_auto_promote') === 'true',
+    voting_downvote_enabled: getConfig('voting_downvote_enabled') !== 'false',
+    aura_enabled: getConfig('aura_enabled') === 'true',
+    queue_url: queueUrl
+  });
+});
+
 // Basic auth middleware (dynamic password)
 const authMiddleware = (req, res, next) => {
   const password = getConfig('admin_password') || 'admin';

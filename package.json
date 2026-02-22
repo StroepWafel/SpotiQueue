@@ -6,8 +6,8 @@
   "scripts": {
     "dev": "concurrently \"npm run dev:server\" \"npm run dev:client\" \"npm run dev:admin\"",
     "dev:server": "nodemon server/index.js",
-    "dev:client": "cd client && npm start",
-    "dev:admin": "cd admin && npx cross-env PORT=3002 BROWSER=none npm start",
+    "dev:client": "cd client && npm run dev",
+    "dev:admin": "cd admin && npm run dev",
     "build": "cd client && npm run build && cd ../admin && npm run build",
     "start": "node server/index.js",
     "install:all": "npm install && cd client && npm install && cd ../admin && npm install"

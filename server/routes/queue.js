@@ -1,10 +1,50 @@
 const express = require('express');
 const { getDb } = require('../db');
 const { getConfig } = require('../utils/config');
-const { searchTracks, getTrack, parseSpotifyUrl, addToQueue } = require('../utils/spotify');
+const { searchTracks, getTrack, parseSpotifyUrl, addToQueue, getQueue } = require('../utils/spotify');
+const { getGuestAuthRequirements, sendAuthRequiredResponse } = require('../utils/guest-auth');
 
 const router = express.Router();
 const db = getDb();
+
+// Server-side cache for queue data
+let queueCache = null;
+let queueCacheExpiry = 0;
+const QUEUE_CACHE_TTL = 20000; // 20 seconds
+
+// Get current queue (optionally sorted by votes when voting_auto_promote enabled)
+router.get('/current', async (req, res) => {
+  try {
+    const now = Date.now();
+
+    if (queueCache && queueCacheExpiry > now) {
+      return res.json(queueCache);
+    }
+
+    const queue = await getQueue();
+    const autoPromote = getConfig('voting_auto_promote') === 'true';
+
+    if (autoPromote && queue?.queue?.length > 0) {
+      const voteRows = db.prepare('SELECT track_id, COALESCE(SUM(direction), 0) as net FROM votes GROUP BY track_id').all();
+      const voteMap = {};
+      voteRows.forEach(row => { voteMap[row.track_id] = row.net; });
+      queue.queue = [...queue.queue].sort((a, b) => (voteMap[b.id] ?? 0) - (voteMap[a.id] ?? 0));
+    }
+
+    queueCache = queue;
+    queueCacheExpiry = now + QUEUE_CACHE_TTL;
+
+    res.json(queue);
+  } catch (error) {
+    console.error('Queue error:', error);
+
+    if (queueCache) {
+      return res.json(queueCache);
+    }
+
+    res.status(500).json({ error: error.message || 'Failed to get queue' });
+  }
+});
 
 // Search tracks
 router.post('/search', async (req, res) => {
@@ -53,11 +93,16 @@ router.post('/add', async (req, res) => {
   }
   
   const fingerprint = db.prepare('SELECT * FROM fingerprints WHERE id = ?').get(fingerprintId);
-  
+
   if (!fingerprint) {
     return res.status(400).json({ error: 'Could not fingerprint your device.' });
   }
-  
+
+  const authReq = getGuestAuthRequirements(fingerprint);
+  if (authReq.authRequired) {
+    return sendAuthRequiredResponse(res, authReq);
+  }
+
   // Check if username is required but not set
   const requireUsername = getConfig('require_username') === 'true';
   if (requireUsername && !fingerprint.username) {
@@ -236,6 +281,88 @@ router.post('/add', async (req, res) => {
     `).run(fingerprintId, trackId, 'error', error.message, now);
     
     res.status(500).json({ error: error.message || 'Failed to queue track' });
+  }
+});
+
+// Vote for a track (direction: 1 = upvote, -1 = downvote; omit to toggle off)
+router.post('/vote', (req, res) => {
+  const votingEnabled = getConfig('voting_enabled') === 'true';
+  if (!votingEnabled) {
+    return res.status(503).json({ error: 'Voting is currently disabled.' });
+  }
+
+  const { track_id, direction: dir } = req.body;
+  const fingerprintId = req.body.fingerprint_id || req.cookies.fingerprint_id;
+  const downvoteEnabled = getConfig('voting_downvote_enabled') !== 'false';
+
+  if (!track_id || !fingerprintId) {
+    return res.status(400).json({ error: 'Track ID and fingerprint required' });
+  }
+
+  const direction = dir === -1 ? -1 : 1;
+  if (dir === -1 && !downvoteEnabled) {
+    return res.status(400).json({ error: 'Downvotes are disabled.' });
+  }
+
+  const fingerprint = db.prepare('SELECT * FROM fingerprints WHERE id = ?').get(fingerprintId);
+  if (!fingerprint) {
+    return res.status(400).json({ error: 'Invalid fingerprint' });
+  }
+
+  const authReq = getGuestAuthRequirements(fingerprint);
+  if (authReq.authRequired) {
+    return sendAuthRequiredResponse(res, authReq);
+  }
+
+  try {
+    const existing = db.prepare('SELECT id, direction FROM votes WHERE track_id = ? AND fingerprint_id = ?').get(track_id, fingerprintId);
+
+    if (existing) {
+      if (existing.direction === direction) {
+        db.prepare('DELETE FROM votes WHERE track_id = ? AND fingerprint_id = ?').run(track_id, fingerprintId);
+        const net = db.prepare('SELECT COALESCE(SUM(direction), 0) as net FROM votes WHERE track_id = ?').get(track_id);
+        if (getConfig('voting_auto_promote') === 'true') queueCacheExpiry = 0;
+        return res.json({ userVote: null, votes: net?.net ?? 0 });
+      }
+      db.prepare('UPDATE votes SET direction = ? WHERE track_id = ? AND fingerprint_id = ?').run(direction, track_id, fingerprintId);
+    } else {
+      const now = Math.floor(Date.now() / 1000);
+      db.prepare('INSERT INTO votes (track_id, fingerprint_id, direction, created_at) VALUES (?, ?, ?, ?)').run(track_id, fingerprintId, direction, now);
+    }
+    const net = db.prepare('SELECT COALESCE(SUM(direction), 0) as net FROM votes WHERE track_id = ?').get(track_id);
+    if (getConfig('voting_auto_promote') === 'true') queueCacheExpiry = 0;
+    res.json({ userVote: direction, votes: net?.net ?? 0 });
+  } catch (error) {
+    console.error('Vote error:', error);
+    res.status(500).json({ error: 'Failed to vote' });
+  }
+});
+
+// Get vote counts (net score per track; userVotes: { track_id: 1|-1 })
+router.get('/votes', (req, res) => {
+  const fingerprintId = req.query.fingerprint_id || req.cookies.fingerprint_id;
+  const votingEnabled = getConfig('voting_enabled') === 'true';
+  const downvoteEnabled = getConfig('voting_downvote_enabled') !== 'false';
+
+  if (!votingEnabled) {
+    return res.json({ votes: {}, userVotes: {}, enabled: false, downvoteEnabled: false });
+  }
+
+  try {
+    const voteCounts = db.prepare('SELECT track_id, COALESCE(SUM(direction), 0) as net FROM votes GROUP BY track_id').all();
+    const votes = {};
+    voteCounts.forEach(row => { votes[row.track_id] = row.net; });
+
+    let userVotes = {};
+    if (fingerprintId) {
+      const rows = db.prepare('SELECT track_id, direction FROM votes WHERE fingerprint_id = ?').all(fingerprintId);
+      rows.forEach(row => { userVotes[row.track_id] = row.direction; });
+    }
+
+    res.json({ votes, userVotes, enabled: true, downvoteEnabled });
+  } catch (error) {
+    console.error('Get votes error:', error);
+    res.json({ votes: {}, userVotes: {} });
   }
 });
 
