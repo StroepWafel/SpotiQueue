@@ -1,9 +1,10 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import axios from 'axios'
-import { QRCodeSVG } from 'qrcode.react'
+import { QRCodeSVG, QRCodeCanvas } from 'qrcode.react'
 import { Card, CardContent } from './ui/card'
 import { Button } from './ui/button'
 import { Input } from './ui/input'
+import { Download, ImageIcon } from 'lucide-react'
 
 function QrCode() {
   const [url, setUrl] = useState('')
@@ -22,11 +23,53 @@ function QrCode() {
   }, [])
 
   const displayUrl = customUrl.trim() || url
+  const qrCanvasRef = useRef(null)
+
   const handleCopy = () => {
     if (!displayUrl) return
     navigator.clipboard.writeText(displayUrl)
     setCopied(true)
     setTimeout(() => setCopied(false), 2000)
+  }
+
+  const handleDownloadQR = () => {
+    if (!displayUrl || !qrCanvasRef.current) return
+    const canvas = qrCanvasRef.current
+    const link = document.createElement('a')
+    link.download = 'queue-qr-code.png'
+    link.href = canvas.toDataURL('image/png')
+    link.click()
+  }
+
+  const handleDownloadShareableImage = () => {
+    if (!displayUrl || !qrCanvasRef.current) return
+    const qrCanvas = qrCanvasRef.current
+    const qrSize = 200
+    const padding = 32
+    const textHeight = 80
+    const canvas = document.createElement('canvas')
+    canvas.width = qrSize + padding * 2
+    canvas.height = qrSize + padding * 2 + textHeight
+    const ctx = canvas.getContext('2d')
+    ctx.fillStyle = '#ffffff'
+    ctx.fillRect(0, 0, canvas.width, canvas.height)
+    ctx.drawImage(qrCanvas, padding, padding, qrSize, qrSize)
+    ctx.fillStyle = '#1a1a1a'
+    ctx.font = 'bold 18px system-ui, sans-serif'
+    ctx.textAlign = 'center'
+    ctx.fillText('Scan to queue music', canvas.width / 2, qrSize + padding + 28)
+    ctx.font = '14px system-ui, sans-serif'
+    ctx.fillStyle = '#666'
+    const line2 = 'Or visit: ' + displayUrl
+    const maxWidth = canvas.width - 24
+    if (ctx.measureText(line2).width > maxWidth) {
+      ctx.font = '12px system-ui, sans-serif'
+    }
+    ctx.fillText(line2, canvas.width / 2, qrSize + padding + 56)
+    const link = document.createElement('a')
+    link.download = 'queue-scan-me.png'
+    link.href = canvas.toDataURL('image/png')
+    link.click()
   }
 
   if (loading) {
@@ -52,7 +95,18 @@ function QrCode() {
                 <div className="bg-white p-4 rounded-xl">
                   <QRCodeSVG value={displayUrl} size={200} level="M" />
                 </div>
+                <div className="fixed -left-[9999px] top-0 w-[200px] h-[200px]" aria-hidden="true">
+                  <QRCodeCanvas ref={qrCanvasRef} value={displayUrl} size={200} level="M" />
+                </div>
                 <span className="text-xs text-muted-foreground">Scan to open queue</span>
+                <div className="flex flex-wrap gap-2">
+                  <Button variant="outline" size="sm" onClick={handleDownloadQR}>
+                    <Download className="h-4 w-4 mr-1" /> Download QR
+                  </Button>
+                  <Button variant="outline" size="sm" onClick={handleDownloadShareableImage}>
+                    <ImageIcon className="h-4 w-4 mr-1" /> Shareable image
+                  </Button>
+                </div>
               </div>
             )}
 

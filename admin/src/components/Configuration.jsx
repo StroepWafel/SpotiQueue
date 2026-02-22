@@ -46,12 +46,37 @@ function Configuration() {
     } catch (e) { alert('Failed to update configuration') }
   }
 
+  const saveAllConfig = async () => {
+    try {
+      setSaving(true)
+      const updates = Object.fromEntries(
+        Object.entries(config).filter(([, v]) => v != null)
+      )
+      const res = await axios.put('/api/config', updates)
+      setConfig(res.data.config || config)
+      setMessage('All configuration saved!')
+      setMessageType('success')
+      setTimeout(() => setMessage(null), 3000)
+    } catch (e) {
+      setMessage('Failed to save configuration')
+      setMessageType('error')
+      setTimeout(() => setMessage(null), 3000)
+    } finally {
+      setSaving(false)
+    }
+  }
+
   const handleChange = (key, value) => setConfig(prev => ({ ...prev, [key]: value }))
 
   if (loading) return <Card><CardContent className="py-12 text-center text-muted-foreground">Loading configuration...</CardContent></Card>
 
   return (
     <div className="space-y-6">
+      <div className="flex justify-end sticky top-2 z-40">
+        <Button onClick={saveAllConfig} disabled={saving}>
+          {saving ? 'Saving…' : 'Save All'}
+        </Button>
+      </div>
       {message && (
         <div
           className={`fixed top-0 left-0 right-0 z-50 px-6 py-3 text-sm border-b shadow-md flex items-center justify-center ${

@@ -104,7 +104,7 @@ function SpotifyConnect() {
           <div className="rounded-lg border p-4 mt-4">
             <h3 className="font-semibold mb-2">Connection Details</h3>
             <p className="text-sm"><strong>Status:</strong> Connected</p>
-            <p className="text-sm"><strong>User ID:</strong> {import.meta.env.VITE_SPOTIFY_USER_ID || 'Not available'}</p>
+            <p className="text-sm"><strong>User ID:</strong> {status?.userId || 'Not available'}</p>
             <p className="text-xs text-muted-foreground mt-2">Connection is active immediately - no restart needed!</p>
           </div>
         )}

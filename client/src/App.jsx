@@ -4,7 +4,7 @@ import { ThemeToggle } from './components/theme-toggle'
 import NowPlaying from './components/NowPlaying'
 import QueueForm from './components/QueueForm'
 import Queue from './components/Queue'
-import { Github, Monitor } from 'lucide-react'
+import { Github, Tv } from 'lucide-react'
 
 axios.defaults.withCredentials = true
 
@@ -185,7 +185,7 @@ function App() {
     <div className="min-h-screen bg-background">
       <header className="flex justify-between items-center p-4">
         <a href="/display" title="Display mode" className="p-1.5 rounded-md text-muted-foreground/60 hover:text-muted-foreground hover:bg-accent/50 transition-colors">
-          <Monitor className="h-4 w-4" />
+          <Tv className="h-4 w-4" />
         </a>
         <ThemeToggle />
       </header>

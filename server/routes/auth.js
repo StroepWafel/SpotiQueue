@@ -23,15 +23,19 @@ router.get('/authorize', (req, res) => {
   const clientId = process.env.SPOTIFY_CLIENT_ID;
   
   // Determine redirect URI
-  // In development: backend runs on 5000, so use 5000
-  // In production: backend runs on 3000, so use 3000
-  // Spotify no longer allows "localhost" - must use 127.0.0.1
-  // Or use SPOTIFY_REDIRECT_URI from env if explicitly set
-  let redirectUri = process.env.SPOTIFY_REDIRECT_URI;
+  // Priority: SPOTIFY_REDIRECT_URI > ADMIN_CLIENT_URL (prod) > CLIENT_URL (prod) > 127.0.0.1 (dev)
+  const isProduction = process.env.NODE_ENV === 'production';
+  let redirectUri = (process.env.SPOTIFY_REDIRECT_URI || '').trim();
   if (!redirectUri) {
-    const isProduction = process.env.NODE_ENV === 'production';
-    const backendPort = isProduction ? 3000 : 5000;
-    redirectUri = `http://127.0.0.1:${backendPort}/api/auth/callback`;
+    if (isProduction) {
+      const adminUrl = (process.env.ADMIN_CLIENT_URL || '').replace(/\/$/, '');
+      const clientUrl = (process.env.CLIENT_URL || '').replace(/\/$/, '');
+      redirectUri = adminUrl || clientUrl
+        ? `${adminUrl || clientUrl}/api/auth/callback`
+        : `http://127.0.0.1:3000/api/auth/callback`;
+    } else {
+      redirectUri = `http://127.0.0.1:5000/api/auth/callback`;
+    }
   }
   
   if (!clientId) {
@@ -84,12 +88,18 @@ router.get('/callback', async (req, res) => {
     const clientSecret = process.env.SPOTIFY_CLIENT_SECRET;
     
     // Use same redirect URI logic as authorize endpoint
-    // Spotify no longer allows "localhost" - must use 127.0.0.1
-    let redirectUri = process.env.SPOTIFY_REDIRECT_URI;
+    const isProduction = process.env.NODE_ENV === 'production';
+    let redirectUri = (process.env.SPOTIFY_REDIRECT_URI || '').trim();
     if (!redirectUri) {
-      const isProduction = process.env.NODE_ENV === 'production';
-      const backendPort = isProduction ? 3000 : 5000;
-      redirectUri = `http://127.0.0.1:${backendPort}/api/auth/callback`;
+      if (isProduction) {
+        const adminUrl = (process.env.ADMIN_CLIENT_URL || '').replace(/\/$/, '');
+        const clientUrl = (process.env.CLIENT_URL || '').replace(/\/$/, '');
+        redirectUri = adminUrl || clientUrl
+          ? `${adminUrl || clientUrl}/api/auth/callback`
+          : `http://127.0.0.1:3000/api/auth/callback`;
+      } else {
+        redirectUri = `http://127.0.0.1:5000/api/auth/callback`;
+      }
     }
     
     if (!clientId || !clientSecret) {
@@ -169,6 +179,7 @@ router.get('/callback', async (req, res) => {
     
     // Update config in database
     setConfig('spotify_connected', 'true');
+    setConfig('spotify_user_id', userId);
     
     // Get admin panel URL from config, default to placeholder if not set
     const adminPanelUrl = getConfig('admin_panel_url');
@@ -222,12 +233,14 @@ router.get('/status', (req, res) => {
     process.env.SPOTIFY_CLIENT_ID.trim() !== '';
   const hasClientSecret = !!process.env.SPOTIFY_CLIENT_SECRET && 
     process.env.SPOTIFY_CLIENT_SECRET.trim() !== '';
+    const userId = process.env.SPOTIFY_USER_ID?.trim() || getConfig('spotify_user_id') || null;
   
   res.json({
     connected: hasRefreshToken && hasClientId && hasClientSecret,
     hasRefreshToken,
     hasClientId,
-    hasClientSecret
+    hasClientSecret,
+    userId
   });
 });
 
@@ -266,6 +279,7 @@ router.post('/disconnect', authMiddleware, (req, res) => {
     
     // Update config in database
     setConfig('spotify_connected', 'false');
+    setConfig('spotify_user_id', '');
     
     res.json({ success: true, message: 'Spotify account disconnected successfully' });
   } catch (error) {

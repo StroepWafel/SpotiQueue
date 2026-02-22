@@ -7,6 +7,17 @@ const { getGuestAuthRequirements, sendAuthRequiredResponse } = require('../utils
 const router = express.Router();
 const db = getDb();
 
+// Get fingerprint IDs that share cooldown (by GitHub/Google account, or device)
+function getCooldownFingerprintIds(fingerprint) {
+  if (fingerprint.github_id) {
+    return db.prepare('SELECT id FROM fingerprints WHERE github_id = ?').all(fingerprint.github_id).map(r => r.id);
+  }
+  if (fingerprint.google_id) {
+    return db.prepare('SELECT id FROM fingerprints WHERE google_id = ?').all(fingerprint.google_id).map(r => r.id);
+  }
+  return [fingerprint.id];
+}
+
 // Server-side cache for queue data
 let queueCache = null;
 let queueCacheExpiry = 0;
@@ -121,56 +132,59 @@ router.post('/add', async (req, res) => {
     return res.status(403).json({ error: 'This device is blocked from queueing songs.' });
   }
   
-  // Check cooldown
+  // Check cooldown (shared across devices with same GitHub/Google account)
   const cooldownEnabled = getConfig('fingerprinting_enabled') === 'true';
   const now = Math.floor(Date.now() / 1000);
+  const cooldownIds = getCooldownFingerprintIds(fingerprint);
   
-  if (cooldownEnabled && fingerprint.cooldown_expires && fingerprint.cooldown_expires > now) {
-    const remaining = fingerprint.cooldown_expires - now;
-    db.prepare(`
-      INSERT INTO queue_attempts (fingerprint_id, status, error_message, timestamp)
-      VALUES (?, ?, ?, ?)
-    `).run(fingerprintId, 'rate_limited', 'Cooldown active', now);
-    
-    return res.status(429).json({ 
-      error: 'Please wait before queueing another song!',
-      cooldown_remaining: remaining
-    });
+  if (cooldownEnabled && cooldownIds.length > 0) {
+    const placeholders = cooldownIds.map(() => '?').join(',');
+    const maxCooldown = db.prepare(`
+      SELECT MAX(cooldown_expires) as mx FROM fingerprints
+      WHERE id IN (${placeholders}) AND cooldown_expires > ?
+    `).get(...cooldownIds, now);
+    if (maxCooldown?.mx) {
+      const remaining = maxCooldown.mx - now;
+      db.prepare(`
+        INSERT INTO queue_attempts (fingerprint_id, status, error_message, timestamp)
+        VALUES (?, ?, ?, ?)
+      `).run(fingerprintId, 'rate_limited', 'Cooldown active', now);
+      return res.status(429).json({
+        error: 'Please wait before queueing another song!',
+        cooldown_remaining: remaining
+      });
+    }
   }
   
-  // Check if user has reached the limit of songs before cooldown
-  if (cooldownEnabled) {
+  // Check if user has reached the limit of songs before cooldown (count shared across account)
+  if (cooldownEnabled && cooldownIds.length > 0) {
     const songsBeforeCooldown = parseInt(getConfig('songs_before_cooldown') || '1');
     const cooldownDuration = parseInt(getConfig('cooldown_duration') || '300');
     const cooldownWindowStart = now - cooldownDuration;
-    
-    // Count successful queue attempts within the cooldown window
+    const placeholders = cooldownIds.map(() => '?').join(',');
     const recentQueues = db.prepare(`
       SELECT COUNT(*) as count
       FROM queue_attempts
-      WHERE fingerprint_id = ? 
-        AND status = 'success' 
+      WHERE fingerprint_id IN (${placeholders})
+        AND status = 'success'
         AND timestamp > ?
-    `).get(fingerprintId, cooldownWindowStart);
-    
+    `).get(...cooldownIds, cooldownWindowStart);
     const recentQueueCount = recentQueues ? recentQueues.count : 0;
     
-    // If user has already queued enough songs, reject this request
-    // Note: This check happens BEFORE queueing, so if count >= limit, they've already reached it
     if (recentQueueCount >= songsBeforeCooldown) {
       const cooldownExpires = now + cooldownDuration;
+      const updatePlaceholders = cooldownIds.map(() => '?').join(',');
       db.prepare(`
-        UPDATE fingerprints
-        SET cooldown_expires = ?
-        WHERE id = ?
-      `).run(cooldownExpires, fingerprintId);
+        UPDATE fingerprints SET cooldown_expires = ?
+        WHERE id IN (${updatePlaceholders})
+      `).run(cooldownExpires, ...cooldownIds);
       
       db.prepare(`
         INSERT INTO queue_attempts (fingerprint_id, status, error_message, timestamp)
         VALUES (?, ?, ?, ?)
       `).run(fingerprintId, 'rate_limited', 'Cooldown limit reached', now);
       
-      return res.status(429).json({ 
+      return res.status(429).json({
         error: `You've reached the limit of ${songsBeforeCooldown} song${songsBeforeCooldown > 1 ? 's' : ''} before cooldown. Please wait!`,
         cooldown_remaining: cooldownDuration
       });
@@ -237,32 +251,29 @@ router.post('/add', async (req, res) => {
       WHERE id = ?
     `).run(now, fingerprintId);
     
-    // Check if we need to apply cooldown after this successful queue
+    // Check if we need to apply cooldown after this successful queue (shared across account)
     const cooldownEnabled = getConfig('fingerprinting_enabled') === 'true';
-    if (cooldownEnabled) {
+    if (cooldownEnabled && cooldownIds.length > 0) {
       const songsBeforeCooldown = parseInt(getConfig('songs_before_cooldown') || '1');
       const cooldownDuration = parseInt(getConfig('cooldown_duration') || '300');
       const cooldownWindowStart = now - cooldownDuration;
-      
-      // Count successful queue attempts including the one we just logged
+      const placeholders = cooldownIds.map(() => '?').join(',');
       const recentQueues = db.prepare(`
         SELECT COUNT(*) as count
         FROM queue_attempts
-        WHERE fingerprint_id = ? 
-          AND status = 'success' 
+        WHERE fingerprint_id IN (${placeholders})
+          AND status = 'success'
           AND timestamp > ?
-      `).get(fingerprintId, cooldownWindowStart);
-      
+      `).get(...cooldownIds, cooldownWindowStart);
       const recentQueueCount = recentQueues ? recentQueues.count : 0;
       
-      // If this queue reaches or exceeds the limit, apply cooldown
       if (recentQueueCount >= songsBeforeCooldown) {
         const cooldownExpires = now + cooldownDuration;
+        const updatePlaceholders = cooldownIds.map(() => '?').join(',');
         db.prepare(`
-          UPDATE fingerprints
-          SET cooldown_expires = ?
-          WHERE id = ?
-        `).run(cooldownExpires, fingerprintId);
+          UPDATE fingerprints SET cooldown_expires = ?
+          WHERE id IN (${updatePlaceholders})
+        `).run(cooldownExpires, ...cooldownIds);
       }
     }
     
