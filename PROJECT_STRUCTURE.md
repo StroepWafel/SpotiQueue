@@ -4,37 +4,47 @@
 SpotifyQueueApp/
 ├── server/                 # Backend Express.js server
 │   ├── index.js           # Main server file (runs both public & admin servers)
-│   ├── db.js              # SQLite database setup and initialization
+│   ├── db.js              # SQLite database (better-sqlite3)
 │   ├── routes/
 │   │   ├── fingerprint.js # Fingerprint generation and validation
-│   │   ├── queue.js       # Queue management (search, add tracks)
-│   │   ├── nowPlaying.js  # Current track information
+│   │   ├── queue.js       # Queue management (search, add, vote, current)
+│   │   ├── nowPlaying.js  # Current track with lyrics
 │   │   ├── admin.js       # Admin panel API (devices, banned tracks, stats)
-│   │   └── config.js      # Configuration management API
+│   │   ├── config.js      # Configuration management API
+│   │   ├── auth.js        # Spotify OAuth
+│   │   ├── github-auth.js # GitHub OAuth (optional)
+│   │   ├── google-auth.js # Google OAuth (optional)
+│   │   └── prequeue.js    # Prequeue moderation
 │   └── utils/
 │       ├── config.js      # Config read/write utilities
-│       └── spotify.js     # Spotify API integration
+│       ├── spotify.js     # Spotify API integration
+│       ├── lyrics.js      # LRCLib API, LRC parsing
+│       └── guest-auth.js  # Guest OAuth requirements
 │
-├── client/                 # Public guest UI (React)
-│   ├── public/
+├── client/                 # Public guest UI (React + Vite + Tailwind)
 │   ├── src/
-│   │   ├── App.js         # Main app component
+│   │   ├── App.jsx        # Main app (queue UI, auth gate)
+│   │   ├── main.jsx       # Entry, routes / and /display
 │   │   ├── components/
-│   │   │   ├── NowPlaying.js  # Now playing display
-│   │   │   └── QueueForm.js  # Search and queue interface
-│   │   └── index.js
+│   │   │   ├── NowPlaying.jsx   # Now playing with progress, lyrics
+│   │   │   ├── QueueForm.jsx   # Search and queue interface
+│   │   │   ├── Queue.jsx       # Up next list with voting
+│   │   │   ├── Display.jsx     # Full-screen party view (/display)
+│   │   │   └── ui/             # Button, Card, Input, etc.
+│   │   └── hooks/
+│   │       └── useAuraColor.js # Album art dominant color
 │   └── package.json
 │
-├── admin/                  # Admin panel UI (React)
-│   ├── public/
+├── admin/                  # Admin panel UI (React + Vite + Tailwind)
 │   ├── src/
-│   │   ├── App.js         # Main admin app
+│   │   ├── App.jsx        # Main admin app
 │   │   ├── components/
-│   │   │   ├── DeviceManagement.js  # Device/fingerprint management
-│   │   │   ├── BannedTracks.js      # Banned tracks management
-│   │   │   ├── Configuration.js     # Settings management
-│   │   │   └── Stats.js             # Statistics dashboard
-│   │   └── index.js
+│   │   │   ├── DeviceManagement.jsx
+│   │   │   ├── BannedTracks.jsx
+│   │   │   ├── Configuration.jsx
+│   │   │   ├── PrequeueManagement.jsx
+│   │   │   └── Stats.js
+│   │   └── ui/            # Shared UI primitives
 │   └── package.json
 │
 ├── data/                   # SQLite database (created at runtime)
@@ -63,18 +73,20 @@ SpotifyQueueApp/
 - Runtime configuration management
 - Basic auth for admin panel
 
-### Public UI (React)
-- Modern, mobile-friendly design
-- Live "Now Playing" display with album art
-- Spotify search interface
-- URL input for direct track links
-- User feedback for queue status
-- Auto-updating now playing (3s polling)
+### Public UI (React + Vite + Tailwind)
+- Modern, mobile-friendly design with dark mode
+- Live "Now Playing" with progress bar, play/pause badge, synced lyrics
+- Display mode (`/display`): Full-screen party view, lyrics, up next, vote counts, QR code
+- Spotify search and URL input
+- Song voting when enabled
+- Optional GitHub/Google OAuth gate
+- Vite dev server, static build in `client/build`
 
-### Admin Panel (React)
+### Admin Panel (React + Vite + Tailwind)
 - Device management (view, block, reset cooldowns)
+- Prequeue management (approve/decline when prequeue enabled)
 - Banned tracks management
-- Configuration interface
+- Configuration (prequeue, voting, OAuth, aura, etc.)
 - Statistics dashboard
 - Protected with HTTP Basic Auth
 
@@ -86,12 +98,17 @@ SpotifyQueueApp/
 
 ## API Endpoints
 
-### Public API (Port 3000)
+### Public API (Port 5000 dev, 3000 prod)
 - `POST /api/fingerprint/generate` - Generate device fingerprint
-- `POST /api/fingerprint/validate` - Validate fingerprint
 - `POST /api/queue/search` - Search Spotify tracks
-- `POST /api/queue/add` - Queue a track
-- `GET /api/now-playing` - Get currently playing track
+- `POST /api/queue/add` - Queue a track (or prequeue submit when enabled)
+- `GET /api/queue/current` - Queue with now playing (cached)
+- `GET /api/queue/votes` - Vote counts when voting enabled
+- `POST /api/queue/vote` - Toggle vote on a track
+- `GET /api/now-playing` - Currently playing track with lyrics
+- `GET /api/config/public` - Public config (prequeue_enabled, voting_enabled, aura_enabled)
+- `GET /api/github/login`, `/api/github/callback`, `/api/github/status`
+- `GET /api/google/login`, `/api/google/callback`, `/api/google/status`
 
 ### Admin API (Port 3001, requires auth)
 - `GET /api/admin/devices` - List all devices
@@ -123,6 +140,18 @@ SpotifyQueueApp/
 - `status` (TEXT) - 'success', 'error', 'blocked', 'rate_limited', 'banned'
 - `error_message` (TEXT) - Error message if failed
 - `timestamp` (INTEGER) - Attempt timestamp
+
+### prequeue
+- `id` (TEXT PRIMARY KEY)
+- `fingerprint_id`, `track_id`, `track_name`, `artist_name`, `album_art`
+- `status` (TEXT) - 'pending', 'approved', 'declined'
+- `approved_by` (TEXT) - Admin who approved/declined
+- `created_at` (INTEGER)
+
+### votes
+- `id` (INTEGER PRIMARY KEY)
+- `track_id` (TEXT), `fingerprint_id` (TEXT)
+- `created_at` (INTEGER)
 
 ### banned_tracks
 - `id` (INTEGER PRIMARY KEY)

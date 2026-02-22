@@ -35,13 +35,13 @@ npm run install:all
 ## Step 3: Build Frontend Applications
 
 ```bash
-# Build client and admin React apps
+# Build client and admin Vite apps
 npm run build
 ```
 
 This creates:
-- `client/build/` - Public guest UI
-- `admin/build/` - Admin panel UI
+- `client/build/` - Public guest UI (Vite output)
+- `admin/build/` - Admin panel UI (Vite output)
 
 ## Step 4: Configure Environment
 
@@ -68,6 +68,14 @@ SPOTIFY_CLIENT_ID=your_client_id
 SPOTIFY_CLIENT_SECRET=your_client_secret
 SPOTIFY_REFRESH_TOKEN=
 SPOTIFY_USER_ID=
+
+# Optional: GitHub OAuth (require guest sign-in)
+# GITHUB_CLIENT_ID=
+# GITHUB_CLIENT_SECRET=
+
+# Optional: Google OAuth (require guest sign-in)
+# GOOGLE_CLIENT_ID=
+# GOOGLE_CLIENT_SECRET=
 
 # Database Path
 DB_PATH=./data/queue.db

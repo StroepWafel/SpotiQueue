@@ -26,15 +26,13 @@ function initDatabase() {
     )
   `);
   
-  // Add username column to existing fingerprints table if it doesn't exist
-  try {
-    db.exec(`ALTER TABLE fingerprints ADD COLUMN username TEXT`);
-  } catch (error) {
-    // Column already exists, ignore error
-    if (!error.message.includes('duplicate column')) {
-      console.warn('Warning adding username column:', error.message);
-    }
-  }
+  try { db.exec(`ALTER TABLE fingerprints ADD COLUMN username TEXT`); } catch (e) { if (!e.message.includes('duplicate')) console.warn(e.message); }
+  try { db.exec(`ALTER TABLE fingerprints ADD COLUMN github_id TEXT`); } catch (e) { if (!e.message.includes('duplicate')) console.warn(e.message); }
+  try { db.exec(`ALTER TABLE fingerprints ADD COLUMN github_username TEXT`); } catch (e) { if (!e.message.includes('duplicate')) console.warn(e.message); }
+  try { db.exec(`ALTER TABLE fingerprints ADD COLUMN github_avatar TEXT`); } catch (e) { if (!e.message.includes('duplicate')) console.warn(e.message); }
+  try { db.exec(`ALTER TABLE fingerprints ADD COLUMN google_id TEXT`); } catch (e) { if (!e.message.includes('duplicate')) console.warn(e.message); }
+  try { db.exec(`ALTER TABLE fingerprints ADD COLUMN google_username TEXT`); } catch (e) { if (!e.message.includes('duplicate')) console.warn(e.message); }
+  try { db.exec(`ALTER TABLE fingerprints ADD COLUMN google_avatar TEXT`); } catch (e) { if (!e.message.includes('duplicate')) console.warn(e.message); }
 
   // Queue attempts log
   db.exec(`
@@ -47,6 +45,35 @@ function initDatabase() {
       status TEXT NOT NULL,
       error_message TEXT,
       timestamp INTEGER DEFAULT (strftime('%s', 'now')),
+      FOREIGN KEY (fingerprint_id) REFERENCES fingerprints(id)
+    )
+  `);
+
+  // Votes (for song voting) - direction: 1 = upvote, -1 = downvote
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS votes (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      track_id TEXT NOT NULL,
+      fingerprint_id TEXT NOT NULL,
+      direction INTEGER NOT NULL DEFAULT 1 CHECK(direction IN (1, -1)),
+      created_at INTEGER DEFAULT (strftime('%s', 'now')),
+      UNIQUE(track_id, fingerprint_id)
+    )
+  `);
+  try { db.exec(`ALTER TABLE votes ADD COLUMN direction INTEGER NOT NULL DEFAULT 1`); } catch (e) { if (!e.message?.includes('duplicate')) console.warn(e.message); }
+
+  // Prequeue (moderation before adding to Spotify)
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS prequeue (
+      id TEXT PRIMARY KEY,
+      fingerprint_id TEXT NOT NULL,
+      track_id TEXT NOT NULL,
+      track_name TEXT NOT NULL,
+      artist_name TEXT NOT NULL,
+      album_art TEXT,
+      status TEXT DEFAULT 'pending' CHECK(status IN ('pending', 'approved', 'declined')),
+      approved_by TEXT,
+      created_at INTEGER DEFAULT (strftime('%s', 'now')),
       FOREIGN KEY (fingerprint_id) REFERENCES fingerprints(id)
     )
   `);
@@ -81,7 +108,15 @@ function initDatabase() {
     { key: 'queueing_enabled', value: 'true' },
     { key: 'admin_panel_url', value: '' }, // Empty by default, will use placeholder if not configured
     { key: 'admin_password', value: 'admin' },
-    { key: 'require_username', value: 'false' } // Require username on first visit
+    { key: 'require_username', value: 'false' }, // Require username on first visit
+    { key: 'voting_enabled', value: 'false' },
+    { key: 'voting_auto_promote', value: 'false' },
+    { key: 'voting_downvote_enabled', value: 'true' },
+    { key: 'require_github_auth', value: 'false' },
+    { key: 'require_google_auth', value: 'false' },
+    { key: 'prequeue_enabled', value: 'false' },
+    { key: 'aura_enabled', value: 'false' },
+    { key: 'queue_url', value: '' }
   ];
 
   const stmt = db.prepare('INSERT OR IGNORE INTO config (key, value) VALUES (?, ?)');

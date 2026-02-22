@@ -46,11 +46,11 @@ npm run dev
 ```
 
 This starts:
-- Backend API servers on ports 3000 (public) and 3001 (admin)
-- Public UI on port 3000 (via React dev server proxy)
-- Admin panel on port 3002 (proxies API calls to port 3001)
+- Public API on port 5000 (proxied from public UI)
+- Admin API on port 3001 (proxied from admin UI)
+- Public guest UI (Vite) on port 3000
+- Admin panel (Vite) on port 3002
 
-In development, admin panel runs on port 3002. In production, it's on port 3001.
 
 **Production (Docker):**
 ```bash
@@ -59,7 +59,8 @@ docker-compose up -d
 
 Access:
 - Public: http://localhost:3000
-- Admin: http://localhost:3001 (password: `admin`)
+- Display mode (party view): http://localhost:3000/display
+- Admin: http://localhost:3002 (dev) or http://localhost:3001 (prod, password: `admin`)
 
 ## First Use
 
@@ -86,10 +87,19 @@ Access:
 → Development: http://localhost:3002
 → Production: http://localhost:3001
 
+## Optional: GitHub / Google OAuth
+
+To require guests to sign in before queueing:
+1. Add `GITHUB_CLIENT_ID`, `GITHUB_CLIENT_SECRET` (and/or `GOOGLE_*`) to `.env`
+2. Enable in admin → Configuration → Guest Authentication
+
+See README for OAuth app setup details.
+
 ## Next Steps
 
 - Change admin password in admin panel → Configuration
 - Adjust cooldown duration (default: 5 minutes)
 - Add banned tracks to prevent troll songs
-- Customize the UI colors/styles if desired
+- Enable song voting, prequeue, or guest OAuth in Configuration
+- Use /display for full-screen party view
 

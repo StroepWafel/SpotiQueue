@@ -10,6 +10,9 @@ const nowPlayingRouter = require('./routes/nowPlaying');
 const adminRouter = require('./routes/admin');
 const configRouter = require('./routes/config');
 const authRouter = require('./routes/auth');
+const githubAuthRouter = require('./routes/github-auth');
+const googleAuthRouter = require('./routes/google-auth');
+const prequeueRouter = require('./routes/prequeue');
 const { initDatabase } = require('./db');
 
 const app = express();
@@ -51,6 +54,9 @@ app.use('/api/now-playing', nowPlayingRouter);
 app.use('/api/admin', adminRouter);
 app.use('/api/config', configRouter);
 app.use('/api/auth', authRouter);
+app.use('/api/github', githubAuthRouter);
+app.use('/api/google', googleAuthRouter);
+app.use('/api/prequeue', prequeueRouter);
 
 // Root route - helpful message in development
 if (!isProduction) {
@@ -129,6 +135,9 @@ adminApp.use('/api/now-playing', nowPlayingRouter);
 adminApp.use('/api/admin', adminRouter);
 adminApp.use('/api/config', configRouter);
 adminApp.use('/api/auth', authRouter);
+adminApp.use('/api/github', githubAuthRouter);
+adminApp.use('/api/google', googleAuthRouter);
+adminApp.use('/api/prequeue', prequeueRouter);
 
 // Root route - helpful message in development
 if (!isProduction) {

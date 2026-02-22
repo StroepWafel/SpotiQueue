@@ -3,6 +3,7 @@ const basicAuth = require('express-basic-auth');
 const { getDb } = require('../db');
 const { getConfig } = require('../utils/config');
 
+
 const router = express.Router();
 const db = getDb();
 
@@ -179,6 +180,12 @@ router.delete('/banned-tracks/:trackId', (req, res) => {
   }
   
   res.json({ success: true, message: 'Track unbanned' });
+});
+
+// Get public client URL (for QR code generation)
+router.get('/client-url', (req, res) => {
+  const url = getConfig('queue_url') || process.env.CLIENT_URL || 'http://localhost:3000';
+  res.json({ url });
 });
 
 // Get queue statistics

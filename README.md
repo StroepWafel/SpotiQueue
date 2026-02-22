@@ -8,30 +8,35 @@ A self-hosted web application that lets guests queue Spotify tracks to your Spot
 Artificial Intelligence (AI) assisted in commenting and cleaning the code and in the creation of all documentation. While I am against AIs replacing humans I think that this is a valid use of AI as a tool
 ## Features
 
-- **Public Guest Interface**: Clean, mobile-friendly UI for queueing songs
+- **Public Guest Interface**: Clean, mobile-friendly UI for queueing songs (Vite + Tailwind, dark mode)
 - **Spotify Search**: Search and queue tracks directly
 - **URL Input**: Paste Spotify track URLs
-- **Live Now Playing**: Auto-updating display of current track
+- **Live Now Playing**: Auto-updating display with progress bar, play/pause badge, synced lyrics
+- **Display Mode** (`/display`): Full-screen party view with now playing, synced lyrics, up-next queue, voting, QR code to queue
+- **Song Voting**: Optional up/down voting on queued tracks (admin-configurable)
+- **Prequeue**: Optional approval flow before adding tracks to Spotify (admin-configurable)
+- **Guest Auth**: Optional GitHub OAuth and/or Google OAuth for queue and voting
 - **Anti-Spam Protection**: Device fingerprinting and rate limiting
 - **Banned Tracks**: Block specific songs or artists
 - **Explicit Content Filtering**: Option to ban explicit songs
-- **Admin Panel**: Full control over devices, configuration, banned tracks, and Spotify connection
+- **Admin Panel**: Full control over devices, configuration, banned tracks, prequeue, and Spotify connection
 - **Auto-Connect**: Automatic Spotify token refresh - no restart needed
 - **Data Management**: Reset all data with one click
 - **Process Management**: PM2 or systemd service support
 
 ## Architecture
 
-- **Public Web App**: Port 3000 (Guest UI)
-- **Admin Panel**: Port 3001 (Protected admin interface)
-- **Backend API**: Express.js server with SQLite database
-- **Frontend**: React applications for both public and admin interfaces
+- **Public Web App**: Port 3000 (Guest UI, Vite dev server in development)
+- **Admin Panel**: Port 3002 in dev, 3001 in production (Protected admin interface)
+- **Backend API**: Express.js server with SQLite (better-sqlite3), public API on port 5000 in dev, 3000 in production
+- **Frontend**: React with Vite + Tailwind for both public and admin interfaces
 
 ## Prerequisites
 
 - Node.js 18+ (for local development and production)
 - Spotify Developer Account
 - Spotify Premium account (required for queue functionality)
+- (Optional) GitHub OAuth App and/or Google OAuth credentials for guest authentication
 
 ## Spotify Setup
 
@@ -182,12 +187,29 @@ npm run dev
 ```
 
 This will start:
-- Backend API server on port 5000 (public API)
-- Backend API server on port 3001 (admin API)
-- Public client on port 3000 (React dev server, proxies to backend port 5000)
-- Admin panel on port 3002 (React dev server, proxies to admin API port 3001)
+- Backend API on port 5000 (public API, serves client in production)
+- Backend API on port 3001 (admin API, serves admin in production)
+- Public client (Vite) on port 3000, proxying `/api` to port 5000
+- Admin panel (Vite) on port 3002, proxying `/api` to port 3001
 
-In development, the backend API runs on port 5000 to avoid conflicts with the React dev server on port 3000. The admin panel runs on port 3002 to avoid conflicts with the admin API on port 3001. In production, the public API runs on port 3000 and admin API on port 3001.
+**Development ports**: Public UI 3000, Admin UI 3002, Public API 5000, Admin API 3001  
+**Production**: Public API + static client on 3000, Admin API + static admin on 3001.
+
+## Optional: Guest Authentication (GitHub & Google OAuth)
+
+You can require guests to sign in with GitHub or Google before queueing or voting. Configure in admin → Configuration → Guest Authentication.
+
+**GitHub OAuth:**
+1. Create an OAuth App at https://github.com/settings/developers
+2. Set callback URL: `http://127.0.0.1:5000/api/github/callback` (dev) or `https://your-domain.com/api/github/callback` (prod)
+3. Add to `.env`: `GITHUB_CLIENT_ID`, `GITHUB_CLIENT_SECRET`
+
+**Google OAuth:**
+1. Create OAuth 2.0 credentials at https://console.cloud.google.com/apis/credentials
+2. Add authorized redirect URI: `http://127.0.0.1:5000/api/google/callback` (dev) or `https://your-domain.com/api/google/callback` (prod)
+3. Add to `.env`: `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`
+
+Enable the desired provider in admin Configuration. Auth is required only if at least one provider is enabled.
 
 ## Configuration
 
@@ -195,29 +217,34 @@ All configuration can be managed through the admin panel:
 - Development: http://localhost:3002
 - Production: http://localhost:3001
 
-The admin panel has five tabs:
+The admin panel has six tabs:
 
 1. **Spotify**: Connect or reconnect your Spotify account (no restart needed)
-2. **Devices**: View and manage device fingerprints, block/unblock devices, reset cooldowns
-3. **Banned Tracks**: Manage list of banned tracks
-4. **Configuration**: Adjust settings:
-   - Cooldown Duration: Time between queue attempts (default: 5 minutes)
-   - Fingerprinting: Enable/disable device fingerprinting
+2. **Prequeue**: Approve or decline track requests when prequeue is enabled
+3. **Devices**: View and manage device fingerprints, block/unblock devices, reset cooldowns
+4. **Banned Tracks**: Manage list of banned tracks
+5. **Configuration**: Adjust settings:
+   - Queue Management: Enable queueing, prequeue (approval required)
+   - Rate Limiting: Cooldown duration, songs before cooldown
+   - Song Voting: Enable/disable voting on queued tracks
+   - Display Mode: Enable album aura on `/display`
    - Input Methods: Enable/disable search UI and URL input
    - Content Filtering: Ban explicit songs
+   - Guest Auth: Require GitHub or Google sign-in
    - Admin Password: Change admin panel password
    - Reset All Data: Clear all devices, stats, and banned tracks (keeps configuration)
-5. **Statistics**: View usage statistics and queue attempt metrics
+6. **Statistics**: View usage statistics and queue attempt metrics
 
 ## Usage
 
 ### For Guests
 
 1. Open the public URL (e.g., http://localhost:3000)
-2. Search for a song or paste a Spotify track URL
-3. Click "Queue" to add it to your Spotify queue
-4. Wait for the cooldown period before queueing another song
-5. Explicit songs will be filtered out if content filtering is enabled in admin settings
+2. If GitHub/Google auth is required, sign in first
+3. Search for a song or paste a Spotify track URL
+4. Click "Queue" to add it (or submit for approval if prequeue is enabled)
+5. Wait for the cooldown period before queueing another song
+6. Use **Display mode** (`/display`) for a full-screen party view with now playing, lyrics, and QR code
 
 ### For Admins
 
