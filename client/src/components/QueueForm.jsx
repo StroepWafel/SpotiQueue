@@ -17,9 +17,14 @@ function QueueForm({ fingerprintId }) {
   const [config, setConfig] = useState({ search_ui_enabled: 'true', url_input_enabled: 'true', prequeue_enabled: false })
 
   useEffect(() => {
-    axios.get('/api/config/public')
-      .then(res => setConfig(prev => ({ ...prev, prequeue_enabled: res.data.prequeue_enabled })))
-      .catch(() => {})
+    const fetchConfig = () => {
+      axios.get('/api/config/public')
+        .then(res => setConfig(prev => ({ ...prev, prequeue_enabled: res.data.prequeue_enabled })))
+        .catch(() => {})
+    }
+    fetchConfig()
+    const interval = setInterval(fetchConfig, 10000)
+    return () => clearInterval(interval)
   }, [])
 
   const handleSearch = async (e) => {
@@ -45,12 +50,16 @@ function QueueForm({ fingerprintId }) {
     setMessage(null)
 
     try {
-      const url = config.prequeue_enabled ? '/api/prequeue/submit' : '/api/queue/add'
+      const configRes = await axios.get('/api/config/public')
+      const prequeueEnabled = configRes.data?.prequeue_enabled ?? config.prequeue_enabled
+      setConfig(prev => ({ ...prev, prequeue_enabled: prequeueEnabled }))
+
+      const url = prequeueEnabled ? '/api/prequeue/submit' : '/api/queue/add'
       const response = await axios.post(url, {
         fingerprint_id: fingerprintId,
         track_id: trackId
       })
-      setMessage(response.data.message || (config.prequeue_enabled ? 'Track submitted for approval!' : 'Track queued successfully!'))
+      setMessage(response.data.message || (prequeueEnabled ? 'Track submitted for approval!' : 'Track queued successfully!'))
       setMessageType('success')
     } catch (error) {
       setMessage(error.response?.data?.error || 'Failed to queue track')
@@ -68,12 +77,16 @@ function QueueForm({ fingerprintId }) {
     setMessage(null)
 
     try {
-      const url = config.prequeue_enabled ? '/api/prequeue/submit' : '/api/queue/add'
+      const configRes = await axios.get('/api/config/public')
+      const prequeueEnabled = configRes.data?.prequeue_enabled ?? config.prequeue_enabled
+      setConfig(prev => ({ ...prev, prequeue_enabled: prequeueEnabled }))
+
+      const url = prequeueEnabled ? '/api/prequeue/submit' : '/api/queue/add'
       const response = await axios.post(url, {
         fingerprint_id: fingerprintId,
         track_url: urlInput
       })
-      setMessage(response.data.message || (config.prequeue_enabled ? 'Track submitted for approval!' : 'Track queued successfully!'))
+      setMessage(response.data.message || (prequeueEnabled ? 'Track submitted for approval!' : 'Track queued successfully!'))
       setMessageType('success')
       setUrlInput('')
     } catch (error) {

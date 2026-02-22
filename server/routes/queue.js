@@ -34,12 +34,27 @@ router.get('/current', async (req, res) => {
 
     const queue = await getQueue();
     const autoPromote = getConfig('voting_auto_promote') === 'true';
+    const guestQueuedIds = new Set(
+      db.prepare("SELECT DISTINCT track_id FROM queue_attempts WHERE status = 'success' AND track_id IS NOT NULL").all().map(r => r.track_id)
+    );
+
+    if (queue?.queue?.length > 0) {
+      queue.queue = queue.queue.map(t => ({ ...t, votable: guestQueuedIds.has(t.id) }));
+    }
+    if (queue?.currently_playing) {
+      queue.currently_playing = { ...queue.currently_playing, votable: guestQueuedIds.has(queue.currently_playing.id) };
+    }
 
     if (autoPromote && queue?.queue?.length > 0) {
       const voteRows = db.prepare('SELECT track_id, COALESCE(SUM(direction), 0) as net FROM votes GROUP BY track_id').all();
       const voteMap = {};
       voteRows.forEach(row => { voteMap[row.track_id] = row.net; });
-      queue.queue = [...queue.queue].sort((a, b) => (voteMap[b.id] ?? 0) - (voteMap[a.id] ?? 0));
+      queue.queue = [...queue.queue].sort((a, b) => {
+        if (!a.votable && !b.votable) return 0;
+        if (!a.votable) return 1;
+        if (!b.votable) return -1;
+        return (voteMap[b.id] ?? 0) - (voteMap[a.id] ?? 0);
+      });
     }
 
     queueCache = queue;
@@ -323,6 +338,11 @@ router.post('/vote', (req, res) => {
   const authReq = getGuestAuthRequirements(fingerprint);
   if (authReq.authRequired) {
     return sendAuthRequiredResponse(res, authReq);
+  }
+
+  const guestQueued = db.prepare("SELECT 1 FROM queue_attempts WHERE track_id = ? AND status = 'success' LIMIT 1").get(track_id);
+  if (!guestQueued) {
+    return res.status(400).json({ error: 'Voting is only available for songs queued by guests.' });
   }
 
   try {

@@ -455,7 +455,7 @@ export default function Display() {
                         <p className="text-sm font-medium truncate">{track.name}</p>
                         <p className="text-xs text-white/50 truncate">{track.artists}</p>
                       </div>
-                      {votingEnabled && netVotes !== 0 && (
+                      {votingEnabled && track.votable && netVotes !== 0 && (
                         <div className={cn('flex items-center gap-1 shrink-0', netVotes > 0 ? 'text-green-400' : 'text-red-400')}>
                           {netVotes > 0 ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
                           <span className="text-xs font-semibold">{netVotes}</span>

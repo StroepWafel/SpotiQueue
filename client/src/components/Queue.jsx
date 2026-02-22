@@ -101,7 +101,7 @@ function Queue({ fingerprintId }) {
               <div className="font-medium truncate">{track.name}</div>
               <div className="text-sm text-muted-foreground truncate">{track.artists}</div>
             </div>
-            {votingEnabled && fingerprintId && (
+            {votingEnabled && fingerprintId && track.votable && (
               <div className="flex items-center gap-1 shrink-0">
                 <Button
                   variant={userVotes[track.id] === 1 ? 'default' : 'outline'}
