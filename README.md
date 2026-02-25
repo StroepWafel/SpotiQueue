@@ -1,4 +1,4 @@
-<img width="1920" height="960" alt="Main" src="https://github.com/user-attachments/assets/0baf3ff7-c8c8-4bc6-bd3e-55139b7ecb24" />
+<img width="1920" height="960" alt="Queue Page" src="github-assets/Queue Page.png" />
 
 # A Spotify Queue App
 
@@ -769,32 +769,32 @@ MIT
 For issues or questions, please open an issue on GitHub.
 
 
-## Gallery:
+## Gallery
 
-queue page with no song:
+Queue Page:
 
-<img width="773" height="714" alt="no song" src="https://github.com/user-attachments/assets/58cc4236-92bd-41b7-9610-7a79b5942f4a" />
+<img width="773" height="714" alt="Queue Page" src="github-assets/Queue Page.png" />
 
-queue page with song and search:
+Queue Page Search:
 
-<img width="764" height="1268" alt="song+search" src="https://github.com/user-attachments/assets/bb494c9c-657d-4e6f-bfe8-e96beafa8ef8" />
+<img width="764" height="1268" alt="Queue Page Search" src="github-assets/Queue Page Search.png" />
 
-admin panel on spotify page:
+Queue Page Queue Disabled:
 
-<img width="1110" height="638" alt="admin-main" src="https://github.com/user-attachments/assets/3e3e1df0-2d99-4537-8045-8d7c420584d7" />
+<img width="773" height="714" alt="Queue Page Queue Disabled" src="github-assets/Queue Page Queue Disabled.png" />
 
-admin panel on devices page:
+Big Picture Mode:
 
-<img width="1097" height="399" alt="admin-devices" src="https://github.com/user-attachments/assets/1b21f8b0-6702-4cfe-8259-c0697a4c5041" />
+<img width="1920" height="960" alt="Big Picture Mode" src="github-assets/Big Picture Mode.png" />
 
-admin panel on banned tracks page:
+Admin Device View:
 
-<img width="1105" height="674" alt="admin-tracks" src="https://github.com/user-attachments/assets/513295cf-4b67-4aaa-815a-cb60cddc1b3c" />
+<img width="1097" height="399" alt="Admin Device View" src="github-assets/Admin Device View.png" />
 
-admin panel on config page:
+Configuration Page:
 
-<img width="1108" height="1278" alt="admin-conf" src="https://github.com/user-attachments/assets/e90a255f-0cc4-471c-8ef0-29d64e96bd62" />
+<img width="1108" height="1278" alt="Configuration Page" src="github-assets/Configuration Page.png" />
 
-admin panel on statistics page:
+Statistics Page:
 
-<img width="1107" height="624" alt="admin-stats" src="https://github.com/user-attachments/assets/39dc0432-3712-402a-854f-2ebc3df11fea" />
+<img width="1107" height="624" alt="Statistics Page" src="github-assets/Statistics Page.png" />
