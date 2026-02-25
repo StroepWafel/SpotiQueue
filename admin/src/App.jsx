@@ -136,7 +136,7 @@ function App() {
           {activeTab === 'stats' && <Stats />}
         </main>
       </div>
-      <footer className="border-t py-2 px-4 flex justify-center">
+      <footer className="border-t py-2 px-4 flex justify-start">
         <a
           href="https://github.com/stroepwafel/spotiqueue"
           target="_blank"

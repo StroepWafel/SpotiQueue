@@ -194,7 +194,7 @@ function App() {
         <NowPlaying track={nowPlaying} />
         <QueueForm fingerprintId={fingerprintId} />
         <Queue fingerprintId={fingerprintId} />
-        <footer className="mt-8 pt-4 flex justify-center">
+        <footer className="mt-8 pt-4 flex justify-start">
           <a
             href="https://github.com/stroepwafel/spotiqueue"
             target="_blank"
