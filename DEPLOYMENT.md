@@ -325,19 +325,3 @@ rm -rf client/build admin/build node_modules client/node_modules admin/node_modu
 npm run install:all
 npm run build
 ```
-
-## Advantages of Non-Docker Deployment
-
-- Simpler setup - no Docker knowledge required
-- Easier debugging - direct access to logs and processes
-- Lower resource usage - no container overhead
-- Faster startup - no container initialization
-- Direct file access - easier to backup database
-
-## Disadvantages
-
-- Requires Node.js installed on server
-- Manual dependency management
-- More setup steps
-- No container isolation
-
