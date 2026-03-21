@@ -29,7 +29,7 @@ function AdminLogin({ totpRequired, onSuccess }) {
   }
 
   return (
-    <div className="flex min-h-screen min-h-[100dvh] items-center justify-center bg-background p-4 pb-safe">
+    <div className="flex min-h-full w-full flex-col items-center justify-center bg-background p-4 pb-safe py-10">
       <Card className="w-full max-w-md shadow-md">
         <CardContent className="pt-6">
           <h1 className="text-xl font-semibold text-center mb-1">SpotiQueue Admin</h1>

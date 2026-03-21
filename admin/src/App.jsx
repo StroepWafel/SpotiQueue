@@ -71,14 +71,18 @@ function App() {
 
   if (!authReady) {
     return (
-      <div className="min-h-screen min-h-[100dvh] flex items-center justify-center bg-background text-muted-foreground">
+      <div className="flex min-h-0 flex-1 items-center justify-center bg-background text-muted-foreground">
         Loading…
       </div>
     )
   }
 
   if (!authenticated) {
-    return <AdminLogin totpRequired={totpRequired} onSuccess={handleLoginSuccess} />
+    return (
+      <div className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden overscroll-y-contain">
+        <AdminLogin totpRequired={totpRequired} onSuccess={handleLoginSuccess} />
+      </div>
+    )
   }
 
   const tabs = [
@@ -99,7 +103,7 @@ function App() {
   }
 
   return (
-    <div className="flex min-h-screen min-h-[100dvh] flex-col bg-background">
+    <div className="flex min-h-0 flex-1 flex-col overflow-hidden bg-background">
       <header className="flex shrink-0 items-center justify-between gap-2 border-b px-4 py-3 pt-safe pl-safe pr-safe">
         <div className="flex min-w-0 flex-1 items-center gap-2">
           <button
