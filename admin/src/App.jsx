@@ -1,7 +1,8 @@
-import { useState, useEffect } from 'react'
-import axios from 'axios'
-import { Menu, X, Github } from 'lucide-react'
+import { useState, useEffect, useCallback } from 'react'
+import axios, { authHandlers } from '@/lib/api'
+import { Menu, X, Github, LogOut } from 'lucide-react'
 import { ThemeToggle } from './components/theme-toggle'
+import AdminLogin from './components/AdminLogin'
 import DeviceManagement from './components/DeviceManagement'
 import BannedTracks from './components/BannedTracks'
 import Configuration from './components/Configuration'
@@ -12,29 +13,63 @@ import SpotifyConnect from './components/SpotifyConnect'
 import { Button } from './components/ui/button'
 import { cn } from '@/lib/utils'
 
-axios.defaults.withCredentials = true
-
 function App() {
+  const [authReady, setAuthReady] = useState(false)
+  const [authenticated, setAuthenticated] = useState(false)
+  const [totpRequired, setTotpRequired] = useState(false)
   const [activeTab, setActiveTab] = useState('spotify')
-  const [authError, setAuthError] = useState(false)
   const [sidebarOpen, setSidebarOpen] = useState(false)
 
-  useEffect(() => {
-    axios.get('/api/admin/stats').catch(error => {
-      if (error.response?.status === 401) setAuthError(true)
-    })
+  const refreshSession = useCallback(async () => {
+    try {
+      const { data } = await axios.get('/api/admin/session')
+      setAuthenticated(!!data.authenticated)
+      setTotpRequired(!!data.totpRequired)
+    } catch {
+      setAuthenticated(false)
+      setTotpRequired(false)
+    } finally {
+      setAuthReady(true)
+    }
   }, [])
 
-  if (authError) {
+  useEffect(() => {
+    refreshSession()
+  }, [refreshSession])
+
+  useEffect(() => {
+    authHandlers.onUnauthorized = () => {
+      setAuthenticated(false)
+    }
+    return () => {
+      authHandlers.onUnauthorized = null
+    }
+  }, [])
+
+  const handleLoginSuccess = () => {
+    setAuthenticated(true)
+    refreshSession()
+  }
+
+  const handleLogout = async () => {
+    try {
+      await axios.post('/api/admin/logout')
+    } catch {
+      /* ignore */
+    }
+    setAuthenticated(false)
+  }
+
+  if (!authReady) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background p-4">
-        <div className="text-center max-w-md">
-          <h2 className="text-xl font-semibold mb-2">Authentication Required</h2>
-          <p className="text-muted-foreground mb-4">Please enter your admin credentials when prompted.</p>
-          <Button onClick={() => window.location.reload()}>Retry</Button>
-        </div>
+      <div className="min-h-screen min-h-[100dvh] flex items-center justify-center bg-background text-muted-foreground">
+        Loading…
       </div>
     )
+  }
+
+  if (!authenticated) {
+    return <AdminLogin totpRequired={totpRequired} onSuccess={handleLoginSuccess} />
   }
 
   const tabs = [
@@ -44,7 +79,7 @@ function App() {
     { id: 'devices', label: 'Devices' },
     { id: 'banned', label: 'Banned Tracks' },
     { id: 'config', label: 'Configuration' },
-    { id: 'stats', label: 'Statistics' },
+    { id: 'stats', label: 'Statistics' }
   ]
 
   const selectTab = (id) => {
@@ -54,21 +89,27 @@ function App() {
 
   return (
     <div className="min-h-screen min-h-[100dvh] bg-background">
-      <header className="border-b px-4 py-3 flex items-center justify-between">
-        <div className="flex items-center gap-2">
+      <header className="border-b px-4 py-3 flex items-center justify-between gap-2">
+        <div className="flex items-center gap-2 min-w-0">
           <button
+            type="button"
             onClick={() => setSidebarOpen(true)}
-            className="md:hidden p-2 -ml-2 rounded-lg hover:bg-accent text-foreground touch-manipulation"
+            className="md:hidden p-2 -ml-2 rounded-lg hover:bg-accent text-foreground touch-manipulation shrink-0"
             aria-label="Open menu"
           >
             <Menu className="h-6 w-6" />
           </button>
-          <h1 className="text-xl font-bold">SpotiQueue Admin</h1>
+          <h1 className="text-xl font-bold truncate">SpotiQueue Admin</h1>
         </div>
-        <ThemeToggle />
+        <div className="flex items-center gap-2 shrink-0">
+          <Button type="button" variant="outline" size="sm" onClick={handleLogout} className="gap-1.5">
+            <LogOut className="h-4 w-4" />
+            <span className="hidden sm:inline">Log out</span>
+          </Button>
+          <ThemeToggle />
+        </div>
       </header>
 
-      {/* Mobile full-screen overlay */}
       {sidebarOpen && (
         <div
           className="fixed inset-0 z-50 md:hidden"
@@ -82,6 +123,7 @@ function App() {
           />
           <div className="absolute inset-0 flex flex-col p-6 pt-16 bg-background pointer-events-none">
             <button
+              type="button"
               onClick={() => setSidebarOpen(false)}
               className="absolute top-4 right-4 p-2 rounded-lg hover:bg-accent text-foreground touch-manipulation pointer-events-auto"
               aria-label="Close menu"
@@ -91,6 +133,7 @@ function App() {
             <nav className="flex flex-col gap-2 flex-1 justify-center pointer-events-auto">
               {tabs.map((tab) => (
                 <button
+                  type="button"
                   key={tab.id}
                   onClick={() => selectTab(tab.id)}
                   className={cn(
@@ -112,6 +155,7 @@ function App() {
         <nav className="hidden md:flex w-48 border-r p-4 flex-col gap-1 shrink-0">
           {tabs.map((tab) => (
             <button
+              type="button"
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
               className={cn(

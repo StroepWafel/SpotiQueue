@@ -1,22 +1,11 @@
 const express = require('express');
 const axios = require('axios');
-const basicAuth = require('express-basic-auth');
 const { setConfig, getConfig } = require('../utils/config');
+const { requireAdminSession } = require('../middleware/adminSession');
 const fs = require('fs');
 const path = require('path');
 
 const router = express.Router();
-
-// Basic auth middleware for admin endpoints
-const authMiddleware = (req, res, next) => {
-  const password = getConfig('admin_password') || 'admin';
-  const auth = basicAuth({
-    users: { admin: password },
-    challenge: true,
-    realm: 'Admin Area'
-  });
-  return auth(req, res, next);
-};
 
 // Get OAuth authorization URL
 router.get('/authorize', (req, res) => {
@@ -245,7 +234,7 @@ router.get('/status', (req, res) => {
 });
 
 // Disconnect Spotify account (requires admin auth)
-router.post('/disconnect', authMiddleware, (req, res) => {
+router.post('/disconnect', requireAdminSession, (req, res) => {
   try {
     const envPath = path.join(__dirname, '../../.env');
     let envContent = '';

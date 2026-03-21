@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import axios from 'axios'
+import axios from '@/lib/api'
 import { QRCodeSVG, QRCodeCanvas } from 'qrcode.react'
 import { Card, CardContent } from './ui/card'
 import { Button } from './ui/button'

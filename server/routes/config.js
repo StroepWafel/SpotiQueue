@@ -1,6 +1,6 @@
 const express = require('express');
-const basicAuth = require('express-basic-auth');
 const { getConfig, setConfig, getAllConfig } = require('../utils/config');
+const { requireAdminSession } = require('../middleware/adminSession');
 
 const router = express.Router();
 
@@ -17,25 +17,14 @@ router.get('/public', (req, res) => {
   });
 });
 
-// Basic auth middleware (dynamic password)
-const authMiddleware = (req, res, next) => {
-  const password = getConfig('admin_password') || 'admin';
-  const auth = basicAuth({
-    users: { admin: password },
-    challenge: true,
-    realm: 'Admin Area'
-  });
-  return auth(req, res, next);
-};
-
 // Get all config
-router.get('/', authMiddleware, (req, res) => {
+router.get('/', requireAdminSession, (req, res) => {
   const config = getAllConfig();
   res.json({ config });
 });
 
 // Get specific config value
-router.get('/:key', authMiddleware, (req, res) => {
+router.get('/:key', requireAdminSession, (req, res) => {
   const { key } = req.params;
   const value = getConfig(key);
   
@@ -47,7 +36,7 @@ router.get('/:key', authMiddleware, (req, res) => {
 });
 
 // Update config
-router.put('/:key', authMiddleware, (req, res) => {
+router.put('/:key', requireAdminSession, (req, res) => {
   const { key } = req.params;
   const { value } = req.body;
   
@@ -60,7 +49,7 @@ router.put('/:key', authMiddleware, (req, res) => {
 });
 
 // Update multiple config values
-router.put('/', authMiddleware, (req, res) => {
+router.put('/', requireAdminSession, (req, res) => {
   const updates = req.body;
   
   if (!updates || typeof updates !== 'object') {

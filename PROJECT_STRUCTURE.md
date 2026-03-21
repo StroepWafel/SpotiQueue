@@ -71,7 +71,7 @@ SpotifyQueueApp/
 - Device blocking/unblocking
 - Banned tracks management
 - Runtime configuration management
-- Basic auth for admin panel
+- Session-based admin login (optional TOTP when `ADMIN_TOTP_SECRET` or `admin_totp_secret` is set)
 
 ### Public UI (React + Vite + Tailwind)
 - Modern, mobile-friendly design with dark mode
@@ -88,7 +88,7 @@ SpotifyQueueApp/
 - Banned tracks management
 - Configuration (prequeue, voting, OAuth, aura, etc.)
 - Statistics dashboard
-- Protected with HTTP Basic Auth
+- Protected with session cookie after password (and TOTP if enabled) login
 
 ### Docker Support
 - Multi-stage Dockerfile
@@ -110,7 +110,10 @@ SpotifyQueueApp/
 - `GET /api/github/login`, `/api/github/callback`, `/api/github/status`
 - `GET /api/google/login`, `/api/google/callback`, `/api/google/status`
 
-### Admin API (Port 3001, requires auth)
+### Admin API (Port 3001, requires session after login)
+- `POST /api/admin/login` - Password (+ TOTP if enabled); sets session cookie
+- `POST /api/admin/logout` - Destroy session
+- `GET /api/admin/session` - `{ authenticated, totpRequired }` (no auth required)
 - `GET /api/admin/devices` - List all devices
 - `POST /api/admin/devices/:id/reset-cooldown` - Reset device cooldown
 - `POST /api/admin/devices/:id/block` - Block device

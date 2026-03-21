@@ -1,17 +1,12 @@
 const express = require('express');
-const basicAuth = require('express-basic-auth');
 const crypto = require('crypto');
 const { getDb } = require('../db');
 const { getConfig } = require('../utils/config');
 const { getGuestAuthRequirements, sendAuthRequiredResponse } = require('../utils/guest-auth');
 const { getTrack, addToQueue, getQueue, parseSpotifyUrl } = require('../utils/spotify');
+const { requireAdminSession } = require('../middleware/adminSession');
 
 const router = express.Router();
-
-const adminAuth = (req, res, next) => {
-  const password = getConfig('admin_password') || 'admin';
-  return basicAuth({ users: { admin: password }, challenge: true, realm: 'Admin Area' })(req, res, next);
-};
 
 router.post('/submit', async (req, res) => {
   const db = getDb();
@@ -77,7 +72,7 @@ router.post('/submit', async (req, res) => {
   }
 });
 
-router.post('/approve/:prequeueId', adminAuth, async (req, res) => {
+router.post('/approve/:prequeueId', requireAdminSession, async (req, res) => {
   const db = getDb();
   const { prequeueId } = req.params;
 
@@ -104,7 +99,7 @@ router.post('/approve/:prequeueId', adminAuth, async (req, res) => {
   }
 });
 
-router.post('/decline/:prequeueId', adminAuth, async (req, res) => {
+router.post('/decline/:prequeueId', requireAdminSession, async (req, res) => {
   const db = getDb();
   const { prequeueId } = req.params;
 
@@ -122,7 +117,7 @@ router.post('/decline/:prequeueId', adminAuth, async (req, res) => {
   }
 });
 
-router.get('/pending', adminAuth, (req, res) => {
+router.get('/pending', requireAdminSession, (req, res) => {
   const db = getDb();
   try {
     const pending = db.prepare("SELECT * FROM prequeue WHERE status = 'pending' ORDER BY created_at DESC").all();

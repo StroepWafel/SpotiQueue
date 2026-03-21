@@ -270,7 +270,8 @@ The admin panel has six tabs:
 ## Security Notes
 
 - Change the default admin password immediately after first setup
-- The admin panel uses HTTP Basic Auth - use HTTPS in production
+- The admin panel uses a **session cookie** (signed with `SESSION_SECRET`) after you sign in on the login page—use **HTTPS** in production so the cookie can be marked `Secure`
+- Optional **TOTP (2FA)**: set `ADMIN_TOTP_SECRET` (base32) or store `admin_totp_secret` in config; when set, the login form asks for an authenticator code
 - Device fingerprinting uses cookies - clearing cookies will reset the fingerprint
 - Rate limiting prevents spam but can be bypassed by clearing cookies (acceptable for event use)
 
@@ -290,11 +291,13 @@ The admin panel has six tabs:
 
 ### Admin panel shows authentication error
 
-- Default password is `admin`
+- Default password is `admin` (unless changed in Configuration)
+- Ensure `SESSION_SECRET` is set in production and `ADMIN_CLIENT_URL` matches your admin URL (needed for CORS with credentials)
+- If TOTP is enabled, enter the current 6-digit code from your authenticator app
 - Check that you're accessing the correct port:
   - Development: http://localhost:3002
   - Production: http://localhost:3001
-- Try clearing browser cache
+- Try clearing site cookies for the admin origin and sign in again
 
 ### Now Playing not updating
 
@@ -423,6 +426,12 @@ ADMIN_CLIENT_URL=http://your-domain.com:3001
 
 # Database path
 DB_PATH=./data/queue.db
+
+# Admin session signing (required for production; use a long random string)
+SESSION_SECRET=your_random_secret_here
+
+# Optional: TOTP second factor (base32 secret, e.g. from an authenticator app setup)
+# ADMIN_TOTP_SECRET=
 
 # Node environment
 NODE_ENV=production

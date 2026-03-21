@@ -12,22 +12,27 @@
     "start": "node server/index.js",
     "install:all": "npm install && cd client && npm install && cd ../admin && npm install"
   },
-  "keywords": ["spotify", "queue", "event"],
+  "keywords": [
+    "spotify",
+    "queue",
+    "event"
+  ],
   "author": "",
   "license": "MIT",
   "dependencies": {
-    "express": "^4.18.2",
+    "axios": "^1.6.2",
+    "better-sqlite3": "^9.2.2",
+    "better-sqlite3-session-store": "^0.1.0",
+    "cookie-parser": "^1.4.6",
     "cors": "^2.8.5",
     "dotenv": "^16.3.1",
+    "express": "^4.18.2",
     "express-rate-limit": "^7.1.5",
-    "cookie-parser": "^1.4.6",
-    "better-sqlite3": "^9.2.2",
-    "axios": "^1.6.2",
-    "express-basic-auth": "^1.2.1"
+    "express-session": "^1.19.0",
+    "otplib": "^13.4.0"
   },
   "devDependencies": {
-    "nodemon": "^3.0.2",
-    "concurrently": "^8.2.2"
+    "concurrently": "^8.2.2",
+    "nodemon": "^3.0.2"
   }
 }
-

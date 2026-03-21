@@ -14,6 +14,7 @@ const githubAuthRouter = require('./routes/github-auth');
 const googleAuthRouter = require('./routes/google-auth');
 const prequeueRouter = require('./routes/prequeue');
 const { initDatabase } = require('./db');
+const { createSessionMiddleware } = require('./sessionMiddleware');
 
 const app = express();
 // In development, use port 5000 for backend API (React dev server uses 3000)
@@ -36,6 +37,24 @@ const ADMIN_PORT = process.env.ADMIN_PORT || 3001;
 
 console.log(`Server mode: ${isProduction ? 'production' : 'development'}, Public port: ${PORT}, Admin port: ${ADMIN_PORT}`);
 
+function adminCorsOrigin(origin, cb) {
+  const adminUrl = (process.env.ADMIN_CLIENT_URL || '').replace(/\/$/, '');
+  const devOrigins = [
+    'http://localhost:3002',
+    'http://127.0.0.1:3002',
+    'http://localhost:3001',
+    'http://127.0.0.1:3001'
+  ];
+  if (!origin) return cb(null, true);
+  if (devOrigins.includes(origin)) return cb(null, true);
+  if (adminUrl && origin === adminUrl) return cb(null, true);
+  return cb(null, false);
+}
+
+// Initialize database (before session store uses DB)
+initDatabase();
+const sessionMiddleware = createSessionMiddleware();
+
 // Middleware
 app.use(cors({
   origin: process.env.CLIENT_URL || 'http://localhost:3000',
@@ -43,9 +62,7 @@ app.use(cors({
 }));
 app.use(express.json());
 app.use(cookieParser());
-
-// Initialize database
-initDatabase();
+app.use(sessionMiddleware);
 
 // Routes
 app.use('/api/fingerprint', fingerprintRouter);
@@ -122,12 +139,16 @@ app.listen(PORT, () => {
 
 // Start admin server
 const adminApp = express();
+if (isProduction) {
+  adminApp.set('trust proxy', 1);
+}
 adminApp.use(cors({
-  origin: process.env.ADMIN_CLIENT_URL || 'http://localhost:3001',
+  origin: adminCorsOrigin,
   credentials: true
 }));
 adminApp.use(express.json());
 adminApp.use(cookieParser());
+adminApp.use(sessionMiddleware);
 
 adminApp.use('/api/fingerprint', fingerprintRouter);
 adminApp.use('/api/queue', queueRouter);
