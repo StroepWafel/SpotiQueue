@@ -83,7 +83,7 @@ function DeviceManagement() {
       <div className="flex flex-col sm:flex-row flex-wrap gap-4">
         <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2 min-w-0">
           <label className="text-sm font-medium sm:font-normal shrink-0">Filter:</label>
-          <select value={filter} onChange={(e) => setFilter(e.target.value)} className="h-9 rounded-md border px-3 text-sm bg-background w-full sm:w-auto">
+          <select value={filter} onChange={(e) => setFilter(e.target.value)} className="min-h-[44px] w-full rounded-md border bg-background px-3 py-2 text-base sm:h-9 sm:min-h-0 sm:w-auto sm:py-0 sm:text-sm">
             <option value="all">All Devices</option>
             <option value="active">Active</option>
             <option value="blocked">Blocked</option>
@@ -91,7 +91,7 @@ function DeviceManagement() {
         </div>
         <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2 min-w-0">
           <label className="text-sm font-medium sm:font-normal shrink-0">Sort by:</label>
-          <select value={sortBy} onChange={(e) => setSortBy(e.target.value)} className="h-9 rounded-md border px-3 text-sm bg-background w-full sm:w-auto">
+          <select value={sortBy} onChange={(e) => setSortBy(e.target.value)} className="min-h-[44px] w-full rounded-md border bg-background px-3 py-2 text-base sm:h-9 sm:min-h-0 sm:w-auto sm:py-0 sm:text-sm">
             <option value="last_queue_attempt">Last Activity</option>
             <option value="first_seen">First Seen</option>
             <option value="cooldown_expires">Cooldown Expiry</option>

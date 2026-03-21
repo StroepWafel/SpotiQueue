@@ -65,3 +65,19 @@
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
   }
 }
+
+/* Mobile: notched devices, home indicator */
+@layer utilities {
+  .pt-safe {
+    padding-top: max(0.75rem, env(safe-area-inset-top, 0px));
+  }
+  .pb-safe {
+    padding-bottom: max(0.75rem, env(safe-area-inset-bottom, 0px));
+  }
+  .pl-safe {
+    padding-left: max(1rem, env(safe-area-inset-left, 0px));
+  }
+  .pr-safe {
+    padding-right: max(1rem, env(safe-area-inset-right, 0px));
+  }
+}

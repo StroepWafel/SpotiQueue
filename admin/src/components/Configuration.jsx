@@ -98,14 +98,18 @@ function Configuration() {
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-end sticky top-2 z-40">
-        <Button onClick={saveAllConfig} disabled={saving}>
+      <div className="sticky top-2 z-40 flex justify-end">
+        <Button
+          onClick={saveAllConfig}
+          disabled={saving}
+          className="min-h-[44px] px-5 sm:min-h-9 sm:px-4"
+        >
           {saving ? 'Saving…' : 'Save All'}
         </Button>
       </div>
       {message && (
         <div
-          className={`fixed top-0 left-0 right-0 z-50 px-6 py-3 text-sm border-b shadow-md flex items-center justify-center ${
+          className={`fixed left-0 right-0 top-0 z-50 flex items-center justify-center border-b px-6 py-3 pt-safe pl-safe pr-safe text-sm shadow-md ${
             messageType === 'success'
               ? 'bg-primary/95 text-primary-foreground border-primary/30'
               : 'bg-destructive/95 text-destructive-foreground border-destructive/30'
