@@ -133,8 +133,12 @@ if (isProduction) {
 }
 
 // Start public server
-app.listen(PORT, () => {
+const publicServer = app.listen(PORT, () => {
   console.log(`Public server running on port ${PORT}`);
+});
+publicServer.on('error', (err) => {
+  console.error(`Public server failed to bind port ${PORT}:`, err.message);
+  process.exit(1);
 });
 
 // Start admin server
@@ -221,7 +225,10 @@ if (isProduction) {
   });
 }
 
-adminApp.listen(ADMIN_PORT, () => {
+const adminHttpServer = adminApp.listen(ADMIN_PORT, () => {
   console.log(`Admin server running on port ${ADMIN_PORT}`);
 });
-
+adminHttpServer.on('error', (err) => {
+  console.error(`Admin server failed to bind port ${ADMIN_PORT}:`, err.message);
+  process.exit(1);
+});

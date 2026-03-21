@@ -299,6 +299,15 @@ The admin panel has six tabs:
   - Production: http://localhost:3001
 - Try clearing site cookies for the admin origin and sign in again
 
+### PM2 shows `errored` or the process keeps restarting
+
+- **`MODULE_NOT_FOUND`**: After `git pull`, run **`npm install`** in the project root on the server so dependencies (e.g. `express-session`, `better-sqlite3-session-store`) are installed. Then `pm2 restart spotify-queue`.
+- Read the real error: `pm2 logs spotify-queue --lines 80` (or your process name). The log now prints which listen failed (public vs admin port).
+- **Port already in use (`EADDRINUSE`)**: Something else is bound to `PORT` or `ADMIN_PORT` (often another PM2 copy, nginx, or an old node). Free the ports or change them in `.env`.
+- **Native module errors (`better-sqlite3`)**: Install dependencies **on the server** (`npm install` or `npm ci`), then run `npm rebuild better-sqlite3`. Do not copy `node_modules` from Windows/macOS to Linux.
+- **Missing build**: After `git pull`, run `npm run build` so `client/build` and `admin/build` exist when `NODE_ENV=production`.
+- **Database path**: Ensure the user running PM2 can read/write `DB_PATH` (default `./data/queue.db`).
+
 ### Now Playing not updating
 
 - Ensure `SPOTIFY_USER_ID` is set correctly (auto-filled when connecting)
