@@ -29,14 +29,14 @@ function AdminLogin({ totpRequired, onSuccess }) {
   }
 
   return (
-    <div className="flex min-h-full w-full flex-col items-center justify-center bg-background p-4 pb-safe py-10">
-      <Card className="w-full max-w-md shadow-md">
-        <CardContent className="pt-6">
-          <h1 className="text-xl font-semibold text-center mb-1">SpotiQueue Admin</h1>
-          <p className="text-sm text-muted-foreground text-center mb-6">Sign in with your admin password</p>
+    <div className="flex min-h-0 w-full flex-1 flex-col justify-start px-4 pb-8 pt-4 sm:justify-center sm:py-8 sm:pb-safe sm:pt-safe">
+      <Card className="mx-auto w-full max-w-md shrink-0 shadow-md">
+        <CardContent className="px-4 pt-6 sm:px-6">
+          <h1 className="mb-1 text-center text-xl font-semibold">SpotiQueue Admin</h1>
+          <p className="mb-6 text-center text-sm text-muted-foreground">Sign in with your admin password</p>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label htmlFor="admin-password" className="text-sm font-medium block mb-1.5">
+              <label htmlFor="admin-password" className="mb-1.5 block text-sm font-medium">
                 Password
               </label>
               <Input
@@ -51,7 +51,7 @@ function AdminLogin({ totpRequired, onSuccess }) {
             </div>
             {totpRequired && (
               <div>
-                <label htmlFor="admin-totp" className="text-sm font-medium block mb-1.5">
+                <label htmlFor="admin-totp" className="mb-1.5 block text-sm font-medium">
                   Authenticator code
                 </label>
                 <Input
@@ -72,7 +72,7 @@ function AdminLogin({ totpRequired, onSuccess }) {
                 {error}
               </p>
             )}
-            <Button type="submit" className="w-full" disabled={loading}>
+            <Button type="submit" className="min-h-[48px] w-full sm:min-h-9" disabled={loading}>
               {loading ? 'Signing in…' : 'Sign in'}
             </Button>
           </form>
