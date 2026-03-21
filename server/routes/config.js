@@ -1,8 +1,11 @@
 const express = require('express');
 const { getConfig, setConfig, getAllConfig } = require('../utils/config');
 const { requireAdminSession } = require('../middleware/adminSession');
+const { setAdminPasswordFromPlain, sanitizeConfigForClient } = require('../utils/adminPassword');
 
 const router = express.Router();
+
+const SENSITIVE_KEYS = new Set(['admin_password', 'admin_password_hash']);
 
 // Public config (no auth) - for client to know prequeue, voting, aura, etc.
 router.get('/public', (req, res) => {
@@ -19,19 +22,22 @@ router.get('/public', (req, res) => {
 
 // Get all config
 router.get('/', requireAdminSession, (req, res) => {
-  const config = getAllConfig();
+  const config = sanitizeConfigForClient(getAllConfig());
   res.json({ config });
 });
 
 // Get specific config value
 router.get('/:key', requireAdminSession, (req, res) => {
   const { key } = req.params;
+  if (SENSITIVE_KEYS.has(key)) {
+    return res.status(404).json({ error: 'Config key not found' });
+  }
   const value = getConfig(key);
-  
+
   if (value === null) {
     return res.status(404).json({ error: 'Config key not found' });
   }
-  
+
   res.json({ key, value });
 });
 
@@ -39,11 +45,22 @@ router.get('/:key', requireAdminSession, (req, res) => {
 router.put('/:key', requireAdminSession, (req, res) => {
   const { key } = req.params;
   const { value } = req.body;
-  
+
   if (value === undefined) {
     return res.status(400).json({ error: 'Value required' });
   }
-  
+
+  if (key === 'admin_password') {
+    if (!String(value).trim()) {
+      return res.status(400).json({ error: 'Password cannot be empty' });
+    }
+    setAdminPasswordFromPlain(String(value));
+    return res.json({ success: true, key, value: '[redacted]' });
+  }
+  if (SENSITIVE_KEYS.has(key)) {
+    return res.status(400).json({ error: 'Invalid config key' });
+  }
+
   setConfig(key, String(value));
   res.json({ success: true, key, value });
 });
@@ -51,16 +68,28 @@ router.put('/:key', requireAdminSession, (req, res) => {
 // Update multiple config values
 router.put('/', requireAdminSession, (req, res) => {
   const updates = req.body;
-  
+
   if (!updates || typeof updates !== 'object') {
     return res.status(400).json({ error: 'Config object required' });
   }
-  
+
   Object.entries(updates).forEach(([key, value]) => {
+    if (key === 'admin_password_configured') {
+      return;
+    }
+    if (key === 'admin_password') {
+      if (String(value).trim()) {
+        setAdminPasswordFromPlain(String(value));
+      }
+      return;
+    }
+    if (SENSITIVE_KEYS.has(key)) {
+      return;
+    }
     setConfig(key, String(value));
   });
-  
-  res.json({ success: true, config: getAllConfig() });
+
+  res.json({ success: true, config: sanitizeConfigForClient(getAllConfig()) });
 });
 
 module.exports = router;

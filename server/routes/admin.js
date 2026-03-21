@@ -3,14 +3,14 @@ const { getDb } = require('../db');
 const { getConfig } = require('../utils/config');
 const { requireAdminSession } = require('../middleware/adminSession');
 const { isTotpEnabled, verifyTotp } = require('../utils/adminLogin');
+const { verifyAdminPassword, upgradePasswordToHashIfNeeded } = require('../utils/adminPassword');
 
 const router = express.Router();
 const db = getDb();
 
 router.post('/login', (req, res) => {
   const { password, totp } = req.body || {};
-  const expected = getConfig('admin_password') || 'admin';
-  if (password !== expected) {
+  if (!verifyAdminPassword(password)) {
     return res.status(401).json({ error: 'Invalid password' });
   }
   if (isTotpEnabled()) {
@@ -18,6 +18,7 @@ router.post('/login', (req, res) => {
       return res.status(401).json({ error: 'Invalid or missing TOTP code', totpRequired: true });
     }
   }
+  upgradePasswordToHashIfNeeded(password);
   req.session.regenerate((regErr) => {
     if (regErr) {
       console.error('Session regenerate error:', regErr);

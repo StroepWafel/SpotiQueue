@@ -21,6 +21,7 @@ function ConfigItem({ label, children, saveKey, saveVal, help, config, updateCon
 
 function Configuration() {
   const [config, setConfig] = useState({})
+  const [adminPasswordDraft, setAdminPasswordDraft] = useState('')
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [message, setMessage] = useState(null)
@@ -43,17 +44,42 @@ function Configuration() {
       setMessage('Configuration updated!')
       setMessageType('success')
       setTimeout(() => setMessage(null), 3000)
-    } catch (e) { alert('Failed to update configuration') }
+    } catch (e) {
+      alert('Failed to update configuration')
+    }
+  }
+
+  const saveAdminPassword = async () => {
+    if (!adminPasswordDraft.trim()) {
+      alert('Enter a new password')
+      return
+    }
+    try {
+      await axios.put('/api/config/admin_password', { value: adminPasswordDraft })
+      setAdminPasswordDraft('')
+      setConfig(prev => ({ ...prev, admin_password_configured: true }))
+      setMessage('Admin password updated (stored hashed).')
+      setMessageType('success')
+      setTimeout(() => setMessage(null), 3000)
+    } catch (e) {
+      alert('Failed to update password')
+    }
   }
 
   const saveAllConfig = async () => {
     try {
       setSaving(true)
       const updates = Object.fromEntries(
-        Object.entries(config).filter(([, v]) => v != null)
+        Object.entries(config).filter(
+          ([k, v]) => v != null && k !== 'admin_password_configured'
+        )
       )
+      if (adminPasswordDraft.trim()) {
+        updates.admin_password = adminPasswordDraft
+      }
       const res = await axios.put('/api/config', updates)
       setConfig(res.data.config || config)
+      if (adminPasswordDraft.trim()) setAdminPasswordDraft('')
       setMessage('All configuration saved!')
       setMessageType('success')
       setTimeout(() => setMessage(null), 3000)
@@ -174,9 +200,30 @@ function Configuration() {
       <Card>
         <CardContent className="pt-6">
           <h2 className="text-lg font-semibold mb-4">Security</h2>
-          <ConfigItem config={config} updateConfig={updateConfig} label="Admin Password:" saveKey="admin_password">
-            <Input type="password" value={config.admin_password || ''} onChange={(e) => handleChange('admin_password', e.target.value)} placeholder="Enter new password" className="w-full sm:w-48" />
-          </ConfigItem>
+          <div className="flex flex-col sm:flex-row sm:items-center gap-4 py-3 border-b">
+            <div className="flex-1 min-w-0">
+              <span className="font-medium">Admin password</span>
+              <p className="text-xs text-muted-foreground mt-1">
+                Stored as a scrypt hash in the database. Enter a new password to replace it.
+                {config.admin_password_configured === false && (
+                  <span className="block mt-1">No custom password saved yet—default is still <code className="text-xs">admin</code> until you set one.</span>
+                )}
+              </p>
+            </div>
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto">
+              <Input
+                type="password"
+                value={adminPasswordDraft}
+                onChange={(e) => setAdminPasswordDraft(e.target.value)}
+                placeholder="New password"
+                autoComplete="new-password"
+                className="w-full sm:w-48"
+              />
+              <Button size="sm" onClick={saveAdminPassword}>
+                Save
+              </Button>
+            </div>
+          </div>
           <ConfigItem config={config} updateConfig={updateConfig} label="Admin Panel Redirect URL:" saveKey="admin_panel_url" help="Full URL for 'Go to Admin Panel' after Spotify auth.">
             <Input type="text" value={config.admin_panel_url || ''} onChange={(e) => handleChange('admin_panel_url', e.target.value)} placeholder="https://admin.url.com" className="w-full sm:w-64" />
           </ConfigItem>

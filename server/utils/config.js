@@ -17,6 +17,11 @@ function setConfig(key, value) {
   return true;
 }
 
+function deleteConfig(key) {
+  db.prepare('DELETE FROM config WHERE key = ?').run(key);
+  return true;
+}
+
 function getAllConfig() {
   const rows = db.prepare('SELECT key, value FROM config').all();
   const config = {};
@@ -26,5 +31,5 @@ function getAllConfig() {
   return config;
 }
 
-module.exports = { getConfig, setConfig, getAllConfig };
+module.exports = { getConfig, setConfig, getAllConfig, deleteConfig };
 

@@ -269,7 +269,7 @@ The admin panel has six tabs:
 
 ## Security Notes
 
-- Change the default admin password immediately after first setup
+- Change the default admin password immediately after first setup; passwords are stored as **scrypt** hashes (`admin_password_hash` in the database). Plaintext `admin_password` rows from older installs are removed automatically the first time someone signs in after upgrading.
 - The admin panel uses a **session cookie** (signed with `SESSION_SECRET`) after you sign in on the login page—use **HTTPS** in production so the cookie can be marked `Secure`
 - Optional **TOTP (2FA)**: set `ADMIN_TOTP_SECRET` (base32) or store `admin_totp_secret` in config; when set, the login form asks for an authenticator code
 - Device fingerprinting uses cookies - clearing cookies will reset the fingerprint
@@ -288,6 +288,15 @@ The admin panel has six tabs:
 - Verify your refresh token is valid (or reconnect through admin panel)
 - Refresh tokens don't expire, but if you revoke access, you'll need to reconnect
 - Use the admin panel's Spotify tab to reconnect - no restart needed
+
+### Forgot admin password (server access)
+
+- From the project directory, set a new password (writes a scrypt hash):
+
+```bash
+cd ~/SpotiQueue
+node -e "require('dotenv').config(); require('./server/db').initDatabase(); require('./server/utils/adminPassword').setAdminPasswordFromPlain('YOUR_NEW_PASSWORD');"
+```
 
 ### Admin panel shows authentication error
 
