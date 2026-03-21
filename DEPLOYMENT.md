@@ -286,6 +286,9 @@ sudo systemctl restart nginx
 # Pull latest changes
 git pull
 
+# Install deps
+npm i
+
 # Rebuild frontend
 npm run build
 
