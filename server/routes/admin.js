@@ -8,6 +8,17 @@ const { verifyAdminPassword, upgradePasswordToHashIfNeeded } = require('../utils
 const router = express.Router();
 const db = getDb();
 
+// Cooldown is shared across fingerprints linked to the same GitHub/Google account.
+function getCooldownFingerprintIds(fingerprint) {
+  if (fingerprint.github_id) {
+    return db.prepare('SELECT id FROM fingerprints WHERE github_id = ?').all(fingerprint.github_id).map(r => r.id);
+  }
+  if (fingerprint.google_id) {
+    return db.prepare('SELECT id FROM fingerprints WHERE google_id = ?').all(fingerprint.google_id).map(r => r.id);
+  }
+  return [fingerprint.id];
+}
+
 router.post('/login', (req, res) => {
   const { password, totp } = req.body || {};
   if (!verifyAdminPassword(password)) {
@@ -132,7 +143,30 @@ router.post('/devices/:id/reset-cooldown', (req, res) => {
     return res.status(404).json({ error: 'Device not found' });
   }
 
-  db.prepare('UPDATE fingerprints SET cooldown_expires = NULL WHERE id = ?').run(id);
+  const now = Math.floor(Date.now() / 1000);
+  const cooldownDuration = parseInt(getConfig('cooldown_duration') || '300', 10);
+  const cooldownWindowStart = now - cooldownDuration;
+  const cooldownIds = getCooldownFingerprintIds(device);
+  const placeholders = cooldownIds.map(() => '?').join(',');
+
+  const resetCooldownAndWindowCount = db.transaction(() => {
+    db.prepare(`
+      UPDATE fingerprints
+      SET cooldown_expires = NULL
+      WHERE id IN (${placeholders})
+    `).run(...cooldownIds);
+
+    // Keep historical rows but move recent successful attempts outside cooldown window.
+    db.prepare(`
+      UPDATE queue_attempts
+      SET timestamp = ?
+      WHERE fingerprint_id IN (${placeholders})
+        AND status = 'success'
+        AND timestamp > ?
+    `).run(cooldownWindowStart - 1, ...cooldownIds, cooldownWindowStart);
+  });
+
+  resetCooldownAndWindowCount();
 
   res.json({ success: true, message: 'Cooldown reset' });
 });
