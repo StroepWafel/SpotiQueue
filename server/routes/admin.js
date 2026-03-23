@@ -58,6 +58,8 @@ router.use(requireAdminSession);
 // Get all devices (fingerprints)
 router.get('/devices', (req, res) => {
   const { status, sort = 'last_queue_attempt' } = req.query;
+  const SORT_COLUMNS = new Set(['last_queue_attempt', 'first_seen', 'cooldown_expires', 'created_at', 'username', 'status']);
+  const sortColumn = SORT_COLUMNS.has(sort) ? sort : 'last_queue_attempt';
 
   let query = 'SELECT * FROM fingerprints';
   const params = [];
@@ -67,7 +69,7 @@ router.get('/devices', (req, res) => {
     params.push(status);
   }
 
-  query += ` ORDER BY ${sort} DESC LIMIT 100`;
+  query += ` ORDER BY ${sortColumn} DESC LIMIT 100`;
 
   const devices = db.prepare(query).all(...params);
 
@@ -85,7 +87,7 @@ router.get('/devices', (req, res) => {
     };
   });
 
-  if (sort === 'last_queue_attempt') {
+  if (sortColumn === 'last_queue_attempt') {
     devicesWithStatus.sort((a, b) => {
       if (a.username && !b.username) return -1;
       if (!a.username && b.username) return 1;

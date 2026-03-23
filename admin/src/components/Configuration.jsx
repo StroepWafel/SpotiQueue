@@ -143,6 +143,37 @@ function Configuration() {
             <Input type="number" value={config.songs_before_cooldown || '1'} onChange={(e) => handleChange('songs_before_cooldown', e.target.value)} min="1" className="w-full sm:w-20" />
           </ConfigItem>
           <ConfigItem config={config} updateConfig={updateConfig} label={<label className="flex items-center gap-2"><input type="checkbox" checked={config.fingerprinting_enabled === 'true'} onChange={(e) => handleChange('fingerprinting_enabled', e.target.checked ? 'true' : 'false')} /> Enable Fingerprinting & Cooldown</label>} saveKey="fingerprinting_enabled" />
+          <ConfigItem
+            config={config}
+            updateConfig={updateConfig}
+            label={<label className="flex items-center gap-2"><input type="checkbox" checked={config.rate_limit_redirect_to_admin === 'true'} onChange={(e) => handleChange('rate_limit_redirect_to_admin', e.target.checked ? 'true' : 'false')} /> Show "Go to Admin" option when rate limited</label>}
+            saveKey="rate_limit_redirect_to_admin"
+            saveVal={config.rate_limit_redirect_to_admin || 'false'}
+            help="When enabled, rate-limited users see a button linking to the admin panel URL."
+          />
+          <ConfigItem
+            config={config}
+            updateConfig={updateConfig}
+            label={<label className="flex items-center gap-2"><input type="checkbox" checked={config.rate_limit_custom_message_enabled === 'true'} onChange={(e) => handleChange('rate_limit_custom_message_enabled', e.target.checked ? 'true' : 'false')} /> Show custom rate-limit message</label>}
+            saveKey="rate_limit_custom_message_enabled"
+            saveVal={config.rate_limit_custom_message_enabled || 'false'}
+            help="Use your custom text instead of the backend rate-limit error."
+          />
+          <ConfigItem
+            config={config}
+            updateConfig={updateConfig}
+            label={<><span className="block font-medium">Custom Rate-Limit Message</span><p className="text-xs text-muted-foreground mt-1">Displayed to rate-limited users when custom message is enabled.</p></>}
+            saveKey="rate_limit_custom_message"
+            saveVal={config.rate_limit_custom_message || ''}
+          >
+            <Input
+              type="text"
+              value={config.rate_limit_custom_message || ''}
+              onChange={(e) => handleChange('rate_limit_custom_message', e.target.value)}
+              placeholder="Too many requests. Please ask an admin for help."
+              className="w-full sm:w-80"
+            />
+          </ConfigItem>
         </CardContent>
       </Card>
 

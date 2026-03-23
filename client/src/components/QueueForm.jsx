@@ -13,19 +13,48 @@ function QueueForm({ fingerprintId }) {
   const [isQueueing, setIsQueueing] = useState(false)
   const [message, setMessage] = useState(null)
   const [messageType, setMessageType] = useState(null)
+  const [rateLimitedAdminUrl, setRateLimitedAdminUrl] = useState('')
   const [inputMethod, setInputMethod] = useState('search')
-  const [config, setConfig] = useState({ search_ui_enabled: 'true', url_input_enabled: 'true', prequeue_enabled: false })
+  const [config, setConfig] = useState({
+    search_ui_enabled: true,
+    url_input_enabled: true,
+    prequeue_enabled: false,
+    admin_panel_url: '',
+    rate_limit_redirect_to_admin: false,
+    rate_limit_custom_message_enabled: false,
+    rate_limit_custom_message: ''
+  })
 
   useEffect(() => {
     const fetchConfig = () => {
       axios.get('/api/config/public')
-        .then(res => setConfig(prev => ({ ...prev, prequeue_enabled: res.data.prequeue_enabled })))
+        .then(res => setConfig(prev => ({ ...prev, ...res.data })))
         .catch(() => {})
     }
     fetchConfig()
     const interval = setInterval(fetchConfig, 10000)
     return () => clearInterval(interval)
   }, [])
+
+  const handleQueueError = (error, latestConfig) => {
+    const status = error.response?.status
+    const apiError = error.response?.data?.error
+    const isRateLimited = status === 429
+
+    if (isRateLimited && latestConfig?.rate_limit_redirect_to_admin) {
+      const customMessageEnabled = latestConfig.rate_limit_custom_message_enabled
+      const customMessage = (latestConfig.rate_limit_custom_message || '').trim()
+      const fallbackMessage = apiError || 'You are currently rate limited.'
+      setMessage(customMessageEnabled && customMessage ? customMessage : fallbackMessage)
+      setMessageType('error')
+      setRateLimitedAdminUrl((latestConfig.admin_panel_url || '').trim() || '/admin')
+      return
+    }
+
+    setRateLimitedAdminUrl('')
+    setMessage(apiError || 'Failed to queue track')
+    setMessageType('error')
+  }
 
   const handleSearch = async (e) => {
     e.preventDefault()
@@ -48,11 +77,13 @@ function QueueForm({ fingerprintId }) {
   const handleQueueTrack = async (trackId) => {
     setIsQueueing(true)
     setMessage(null)
+    let latestConfig = config
 
     try {
       const configRes = await axios.get('/api/config/public')
-      const prequeueEnabled = configRes.data?.prequeue_enabled ?? config.prequeue_enabled
-      setConfig(prev => ({ ...prev, prequeue_enabled: prequeueEnabled }))
+      latestConfig = { ...config, ...(configRes.data || {}) }
+      const prequeueEnabled = latestConfig.prequeue_enabled ?? config.prequeue_enabled
+      setConfig(latestConfig)
 
       const url = prequeueEnabled ? '/api/prequeue/submit' : '/api/queue/add'
       const response = await axios.post(url, {
@@ -61,9 +92,9 @@ function QueueForm({ fingerprintId }) {
       })
       setMessage(response.data.message || (prequeueEnabled ? 'Track submitted for approval!' : 'Track queued successfully!'))
       setMessageType('success')
+      setRateLimitedAdminUrl('')
     } catch (error) {
-      setMessage(error.response?.data?.error || 'Failed to queue track')
-      setMessageType('error')
+      handleQueueError(error, latestConfig)
     } finally {
       setIsQueueing(false)
     }
@@ -75,11 +106,13 @@ function QueueForm({ fingerprintId }) {
 
     setIsQueueing(true)
     setMessage(null)
+    let latestConfig = config
 
     try {
       const configRes = await axios.get('/api/config/public')
-      const prequeueEnabled = configRes.data?.prequeue_enabled ?? config.prequeue_enabled
-      setConfig(prev => ({ ...prev, prequeue_enabled: prequeueEnabled }))
+      latestConfig = { ...config, ...(configRes.data || {}) }
+      const prequeueEnabled = latestConfig.prequeue_enabled ?? config.prequeue_enabled
+      setConfig(latestConfig)
 
       const url = prequeueEnabled ? '/api/prequeue/submit' : '/api/queue/add'
       const response = await axios.post(url, {
@@ -88,10 +121,10 @@ function QueueForm({ fingerprintId }) {
       })
       setMessage(response.data.message || (prequeueEnabled ? 'Track submitted for approval!' : 'Track queued successfully!'))
       setMessageType('success')
+      setRateLimitedAdminUrl('')
       setUrlInput('')
     } catch (error) {
-      setMessage(error.response?.data?.error || 'Failed to queue track')
-      setMessageType('error')
+      handleQueueError(error, latestConfig)
     } finally {
       setIsQueueing(false)
     }
@@ -106,11 +139,23 @@ function QueueForm({ fingerprintId }) {
             messageType === 'error' ? 'bg-destructive/10 text-destructive' : 'bg-primary/10 text-primary'
           )}>
             {message}
+            {rateLimitedAdminUrl && (
+              <div className="mt-3">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="min-h-[40px]"
+                  onClick={() => { window.location.href = rateLimitedAdminUrl }}
+                >
+                  Go to Admin
+                </Button>
+              </div>
+            )}
           </div>
         )}
 
         <div className="flex gap-2 mb-4 flex-wrap">
-          {config.search_ui_enabled !== 'false' && (
+          {config.search_ui_enabled !== false && (
             <Button
               variant={inputMethod === 'search' ? 'default' : 'outline'}
               size="sm"
@@ -120,7 +165,7 @@ function QueueForm({ fingerprintId }) {
               Search
             </Button>
           )}
-          {config.url_input_enabled !== 'false' && (
+          {config.url_input_enabled !== false && (
             <Button
               variant={inputMethod === 'url' ? 'default' : 'outline'}
               size="sm"

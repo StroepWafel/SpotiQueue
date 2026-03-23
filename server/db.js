@@ -107,6 +107,9 @@ function initDatabase() {
     { key: 'search_ui_enabled', value: 'true' },
     { key: 'queueing_enabled', value: 'true' },
     { key: 'admin_panel_url', value: '' }, // Empty by default, will use placeholder if not configured
+    { key: 'rate_limit_redirect_to_admin', value: 'false' },
+    { key: 'rate_limit_custom_message_enabled', value: 'false' },
+    { key: 'rate_limit_custom_message', value: '' },
     { key: 'admin_password', value: 'admin' },
     { key: 'require_username', value: 'false' }, // Require username on first visit
     { key: 'voting_enabled', value: 'false' },

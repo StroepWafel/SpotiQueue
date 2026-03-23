@@ -12,10 +12,16 @@ router.get('/public', (req, res) => {
   const queueUrl = getConfig('queue_url') || process.env.CLIENT_URL || '';
   res.json({
     prequeue_enabled: getConfig('prequeue_enabled') === 'true',
+    search_ui_enabled: getConfig('search_ui_enabled') !== 'false',
+    url_input_enabled: getConfig('url_input_enabled') !== 'false',
     voting_enabled: getConfig('voting_enabled') === 'true',
     voting_auto_promote: getConfig('voting_auto_promote') === 'true',
     voting_downvote_enabled: getConfig('voting_downvote_enabled') !== 'false',
     aura_enabled: getConfig('aura_enabled') === 'true',
+    admin_panel_url: getConfig('admin_panel_url') || '',
+    rate_limit_redirect_to_admin: getConfig('rate_limit_redirect_to_admin') === 'true',
+    rate_limit_custom_message_enabled: getConfig('rate_limit_custom_message_enabled') === 'true',
+    rate_limit_custom_message: getConfig('rate_limit_custom_message') || '',
     queue_url: queueUrl
   });
 });
