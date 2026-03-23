@@ -1,4 +1,5 @@
 <img width="1920" height="960" alt="Main" src="https://github.com/user-attachments/assets/0baf3ff7-c8c8-4bc6-bd3e-55139b7ecb24" />
+
 # A Spotify Queue App
 
 A self-hosted web application that lets guests queue Spotify tracks to your Spotify account during events, with anti-spam controls, live "Now Playing" display, and a comprehensive admin interface.
