@@ -41,13 +41,18 @@ function QueueForm({ fingerprintId }) {
     const apiError = error.response?.data?.error
     const isRateLimited = status === 429
 
-    if (isRateLimited && latestConfig?.rate_limit_redirect_to_admin) {
-      const customMessageEnabled = latestConfig.rate_limit_custom_message_enabled
-      const customMessage = (latestConfig.rate_limit_custom_message || '').trim()
+    if (isRateLimited) {
+      const customMessageEnabled = !!latestConfig?.rate_limit_custom_message_enabled
+      const customMessage = (latestConfig?.rate_limit_custom_message || '').trim()
       const fallbackMessage = apiError || 'You are currently rate limited.'
       setMessage(customMessageEnabled && customMessage ? customMessage : fallbackMessage)
       setMessageType('error')
-      setRateLimitedAdminUrl((latestConfig.admin_panel_url || '').trim() || '/admin')
+
+      if (latestConfig?.rate_limit_redirect_to_admin) {
+        setRateLimitedAdminUrl((latestConfig.admin_panel_url || '').trim() || '/admin')
+      } else {
+        setRateLimitedAdminUrl('')
+      }
       return
     }
 
