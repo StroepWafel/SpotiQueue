@@ -486,9 +486,19 @@ export default function Display() {
                 style={{ flex: `0 0 ${qrSize}%` }}
               >
                 <QrCodeScaled value={appUrl} />
-                <div className="min-w-0 flex-1 flex flex-col justify-center">
-                  <p className="text-sm font-semibold">Queue a song</p>
-                  <p className="text-xs text-white/40 mt-0.5 break-all">{appUrl}</p>
+                <div className="@container min-w-0 flex-1 flex flex-col justify-center">
+                  <p
+                    className="font-semibold"
+                    style={{ fontSize: 'clamp(0.8125rem, 3.25cqi + 0.35rem, 1.375rem)' }}
+                  >
+                    Queue a song
+                  </p>
+                  <p
+                    className="text-white/40 mt-1.5 break-all leading-snug"
+                    style={{ fontSize: 'clamp(0.75rem, 6cqi + 0.45rem, 3.5rem)' }}
+                  >
+                    {appUrl}
+                  </p>
                 </div>
               </div>
             </>
