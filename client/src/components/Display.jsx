@@ -1,20 +1,33 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import axios from 'axios'
 import { QRCodeSVG } from 'qrcode.react'
-import { Music, ChevronUp, ChevronDown, WifiOff, GripVertical, GripHorizontal } from 'lucide-react'
+import { Music, ChevronUp, ChevronDown, WifiOff, GripHorizontal } from 'lucide-react'
 import { useAuraColor } from '../hooks/useAuraColor'
 import { cn } from '@/lib/utils'
 
-const DISPLAY_SIZE_KEY = 'spotiqueue-display-left-size'
 const QR_SIZE_KEY = 'spotiqueue-display-qr-size'
-const MIN_PANEL = 25
-const MAX_PANEL = 75
 const MIN_QR = 15
 const MAX_QR = 50
 
-const POLL_NOW_PLAYING_MS = 5000
+const POLL_NOW_PLAYING_MS = 3000
 const POLL_QUEUE_MS = 8000
 const POLL_VOTES_MS = 10000
+/** Spotify progress_ms + client extrapolation often lags real audio; nudge lyric line earlier (ms). */
+const LYRIC_SYNC_OFFSET_MS = -220
+
+function computeLyricLineIndex(lines, currentMs) {
+  if (!lines?.length) return 0
+  const t = Math.max(0, currentMs)
+  let idx = 0
+  for (let i = lines.length - 1; i >= 0; i--) {
+    const lineStartMs = lines[i].startTimeMs ?? 0
+    if (t >= lineStartMs) {
+      idx = i
+      break
+    }
+  }
+  return idx
+}
 
 function formatDuration(ms) {
   if (!ms || !Number.isFinite(ms)) return '0:00'
@@ -65,10 +78,11 @@ function QrCodeScaled({ value }) {
 
 function AlbumArt({ src, alt, size = 'lg', auraColor }) {
   const [error, setError] = useState(false)
+  /* Bigscreen: scale with viewport (vmin/vh) so 1080p TVs stay compact; cap max on large screens */
   const sizeClass = size === 'lg'
-    ? 'w-48 h-48 md:w-64 md:h-64 lg:w-72 lg:h-72'
+    ? 'max-w-full w-[min(18rem,min(85vw,38vh))] h-[min(18rem,min(85vw,38vh))] max-h-[min(40vh,20rem)] aspect-square'
     : 'w-14 h-14'
-  const iconSize = size === 'lg' ? 'h-16 w-16' : 'h-5 w-5'
+  const iconSize = size === 'lg' ? 'h-[min(4rem,10vmin)] w-[min(4rem,10vmin)]' : 'h-5 w-5'
 
   if (!src || error) {
     return (
@@ -105,15 +119,7 @@ export default function Display() {
   const nowPlayingRef = useRef(null)
   const lastFetchedAtRef = useRef(null)
   const progressTimerRef = useRef(null)
-
-  const [leftSize, setLeftSize] = useState(() => {
-    try {
-      const v = localStorage.getItem(DISPLAY_SIZE_KEY)
-      return v ? Math.min(MAX_PANEL, Math.max(MIN_PANEL, parseInt(v, 10))) : 50
-    } catch { return 50 }
-  })
-  const sizeRef = useRef(leftSize)
-  sizeRef.current = leftSize
+  const displayRightRef = useRef(null)
 
   const [qrSize, setQrSize] = useState(() => {
     try {
@@ -124,63 +130,56 @@ export default function Display() {
   const qrSizeRef = useRef(qrSize)
   qrSizeRef.current = qrSize
 
-  const handleResizeStart = useCallback((e) => {
+  const handleQrResizePointerDown = useCallback((e) => {
+    if (!e.isPrimary) return
+    if (e.pointerType === 'mouse' && e.button !== 0) return
     e.preventDefault()
-    const startX = e.clientX
-    const startSize = sizeRef.current
-
-    const onMove = (e) => {
-      const container = document.querySelector('[data-display-panels]')
-      if (!container) return
-      const rect = container.getBoundingClientRect()
-      const delta = ((e.clientX - startX) / rect.width) * 100
-      const next = Math.min(MAX_PANEL, Math.max(MIN_PANEL, startSize + delta))
-      setLeftSize(next)
-    }
-    const onUp = () => {
-      try { localStorage.setItem(DISPLAY_SIZE_KEY, String(Math.round(sizeRef.current))) } catch {}
-      document.removeEventListener('mousemove', onMove)
-      document.removeEventListener('mouseup', onUp)
-      document.body.style.cursor = ''
-      document.body.style.userSelect = ''
-    }
-
-    document.body.style.cursor = 'col-resize'
-    document.body.style.userSelect = 'none'
-    document.addEventListener('mousemove', onMove)
-    document.addEventListener('mouseup', onUp)
-  }, [])
-
-  const handleQrResizeStart = useCallback((e) => {
-    e.preventDefault()
+    const pid = e.pointerId
     const startY = e.clientY
     const startSize = qrSizeRef.current
 
-    const onMove = (e) => {
-      const container = document.querySelector('[data-display-right]')
+    const onMove = (ev) => {
+      if (ev.pointerId !== pid) return
+      if (ev.cancelable) ev.preventDefault()
+      const container = displayRightRef.current
       if (!container) return
       const rect = container.getBoundingClientRect()
-      const delta = ((startY - e.clientY) / rect.height) * 100
+      if (rect.height <= 0) return
+      const delta = ((startY - ev.clientY) / rect.height) * 100
       const next = Math.min(MAX_QR, Math.max(MIN_QR, startSize + delta))
       setQrSize(next)
     }
-    const onUp = () => {
+    const onUp = (ev) => {
+      if (ev.pointerId !== pid) return
+      window.removeEventListener('pointermove', onMove)
+      window.removeEventListener('pointerup', onUp)
+      window.removeEventListener('pointercancel', onUp)
       try { localStorage.setItem(QR_SIZE_KEY, String(Math.round(qrSizeRef.current))) } catch {}
-      document.removeEventListener('mousemove', onMove)
-      document.removeEventListener('mouseup', onUp)
       document.body.style.cursor = ''
       document.body.style.userSelect = ''
     }
 
     document.body.style.cursor = 'row-resize'
     document.body.style.userSelect = 'none'
-    document.addEventListener('mousemove', onMove)
-    document.addEventListener('mouseup', onUp)
+    window.addEventListener('pointermove', onMove, { passive: false })
+    window.addEventListener('pointerup', onUp)
+    window.addEventListener('pointercancel', onUp)
   }, [])
 
   const appUrl = queueUrl || (typeof window !== 'undefined' ? `${window.location.protocol}//${window.location.host}` : '')
 
   const auraColor = useAuraColor(auraEnabled ? nowPlaying?.album_art : null)
+
+  /** Extrapolated playback position (ms). Does not advance while paused. */
+  function getPlaybackMs() {
+    const track = nowPlayingRef.current
+    if (!track) return 0
+    const base = track.progress_ms ?? 0
+    if (!track.is_playing) return base
+    const fetchedAt = lastFetchedAtRef.current
+    if (fetchedAt == null) return base
+    return base + (Date.now() - fetchedAt)
+  }
 
   // Poll now playing
   useEffect(() => {
@@ -230,40 +229,37 @@ export default function Display() {
     return () => { cancelled = true; clearInterval(interval) }
   }, [cachedLyrics])
 
-  // Animate progress bar between polls
+  // Progress bar + lyric line: tick every 100ms while playing (500ms was too coarse for sync)
   useEffect(() => {
     if (progressTimerRef.current) clearInterval(progressTimerRef.current)
     if (!nowPlayingRef.current?.is_playing) return
 
-    progressTimerRef.current = setInterval(() => {
+    const tick = () => {
       const track = nowPlayingRef.current
       const fetchedAt = lastFetchedAtRef.current
       if (!track?.duration_ms || !fetchedAt) return
-      const elapsed = Date.now() - fetchedAt
-      const currentMs = (track.progress_ms ?? 0) + elapsed
+      const currentMs = getPlaybackMs()
       const newProgress = Math.min((currentMs / track.duration_ms) * 100, 100)
       setProgress(newProgress)
-    }, 500)
+      const lines = track.lyrics?.lines
+      if (lines?.length) {
+        setCurrentLyricIndex(computeLyricLineIndex(lines, currentMs + LYRIC_SYNC_OFFSET_MS))
+      }
+    }
+    tick()
+    progressTimerRef.current = setInterval(tick, 100)
 
     return () => clearInterval(progressTimerRef.current)
   }, [nowPlaying])
 
-  // Sync lyrics with playback progress
+  // When paused (or lyrics arrive while paused), align lyric line without extrapolation
   useEffect(() => {
-    if (!nowPlaying?.lyrics?.lines || nowPlaying.lyrics.lines.length === 0) return
-
-    const currentMs = (nowPlayingRef.current?.progress_ms ?? 0) + (Date.now() - (lastFetchedAtRef.current ?? Date.now()))
-
-    let newIndex = 0
-    for (let i = nowPlaying.lyrics.lines.length - 1; i >= 0; i--) {
-      const lineStartMs = nowPlaying.lyrics.lines[i].startTimeMs ?? 0
-      if (currentMs >= lineStartMs) {
-        newIndex = i
-        break
-      }
-    }
-    setCurrentLyricIndex(newIndex)
-  }, [progress, nowPlaying?.lyrics])
+    const track = nowPlayingRef.current
+    if (!track?.lyrics?.lines?.length) return
+    if (track.is_playing) return
+    const currentMs = track.progress_ms ?? 0
+    setCurrentLyricIndex(computeLyricLineIndex(track.lyrics.lines, currentMs + LYRIC_SYNC_OFFSET_MS))
+  }, [nowPlaying?.id, nowPlaying?.is_playing, nowPlaying?.lyrics])
 
   useEffect(() => {
     let cancelled = false
@@ -350,139 +346,152 @@ export default function Display() {
 
       <div
         data-display-panels
-        className="flex flex-col lg:flex-row flex-1 min-h-0"
-        style={{ '--left-pct': `${leftSize}%`, '--right-pct': `${100 - leftSize}%` }}
+        className="flex flex-col sm:flex-row flex-1 min-h-0"
       >
         <div
-          className="flex flex-col items-center justify-center flex-shrink-0 w-full lg:w-[var(--left-pct)] lg:min-w-0 p-8 lg:p-14 gap-6 transition-colors duration-300"
+          className="flex flex-col items-center justify-center flex-1 min-h-0 w-full min-w-0 overflow-y-auto overflow-x-hidden no-scrollbar p-4 sm:p-8 2xl:p-12 gap-4 sm:gap-6 transition-colors duration-300 sm:min-w-0 sm:flex-1"
           style={auraColor ? { background: `radial-gradient(ellipse at center, rgba(${auraColor}, 0.25) 0%, transparent 70%)` } : {}}
         >
           {!initialized ? (
             <div className="flex flex-col items-center gap-3 text-white/40">
-              <div className="h-64 w-64 rounded-2xl bg-white/5 animate-pulse" />
+              <div className="h-48 w-48 sm:h-56 sm:w-56 max-h-[min(40vh,16rem)] max-w-[min(90vw,16rem)] rounded-2xl bg-white/5 animate-pulse" />
               <div className="h-4 w-48 bg-white/5 rounded animate-pulse" />
             </div>
           ) : !nowPlaying ? (
             <div className="flex flex-col items-center gap-4 text-white/40">
-              <div className="w-48 h-48 md:w-64 md:h-64 rounded-2xl bg-white/5 flex items-center justify-center">
-                <Music className="h-16 w-16" />
+              <div className="w-[min(18rem,min(85vw,38vh))] h-[min(18rem,min(85vw,38vh))] max-h-[min(40vh,20rem)] rounded-2xl bg-white/5 flex items-center justify-center aspect-square">
+                <Music className="h-[min(4rem,10vmin)] w-[min(4rem,10vmin)]" />
               </div>
-              <p className="text-lg">Nothing playing</p>
+              <p className="text-[clamp(0.9375rem,1.5vw+0.5rem,1.125rem)]">Nothing playing</p>
             </div>
           ) : (
-            <>
-              <AlbumArt src={nowPlaying.album_art} alt={nowPlaying.album} size="lg" auraColor={auraColor} />
+            <div className="flex flex-col items-center justify-center w-full max-w-lg min-w-0 flex-1 min-h-0 gap-4 overflow-x-hidden px-1 py-2">
+              <div className="flex flex-col items-center justify-center w-full min-w-0 max-w-full gap-4">
+                <AlbumArt src={nowPlaying.album_art} alt={nowPlaying.album} size="lg" auraColor={auraColor} />
 
-              <div className="w-full max-w-sm space-y-3 text-center">
-                <div>
-                  <h2 className="text-2xl md:text-3xl font-bold leading-tight truncate">
-                    {nowPlaying.name}
-                  </h2>
-                  <p className="text-white/60 text-lg truncate mt-1">{nowPlaying.artists}</p>
-                </div>
-
-                <div className="space-y-1">
-                  <ProgressBar progress={progress} auraColor={auraColor} />
-                  <div className="flex justify-between text-xs text-white/40 font-mono">
-                    <span>{formatDuration((nowPlaying.progress_ms ?? 0) + (Date.now() - (lastFetchedAtRef.current ?? Date.now())))}</span>
-                    <span>{formatDuration(nowPlaying.duration_ms)}</span>
+                <div className="w-full max-w-sm min-w-0 max-w-full flex flex-col space-y-3 text-center overflow-x-hidden">
+                  <div className="shrink-0 px-0.5 min-w-0 max-w-full">
+                    <h2
+                      className="font-bold leading-tight line-clamp-3 [overflow-wrap:anywhere] break-words"
+                      style={{ fontSize: 'clamp(1rem, 1.75vw + 0.5rem, 1.625rem)' }}
+                    >
+                      {nowPlaying.name}
+                    </h2>
+                    <p
+                      className="text-white/60 mt-1 line-clamp-3 [overflow-wrap:anywhere] break-words"
+                      style={{ fontSize: 'clamp(0.8125rem, 0.9vw + 0.45rem, 1rem)' }}
+                    >
+                      {nowPlaying.artists}
+                    </p>
                   </div>
-                </div>
 
-                {nowPlaying.lyrics?.lines && (
-                  <div className="mt-4 pt-4 border-t border-white/10 max-h-40 overflow-y-auto overflow-x-hidden scroll-smooth">
-                    <p className="text-xs font-semibold uppercase tracking-widest text-white/40 mb-3">Lyrics</p>
-                    <div className="space-y-2 whitespace-normal">
-                      {nowPlaying.lyrics.lines.map((line, idx) => (
-                        <div
-                          key={idx}
-                          ref={idx === currentLyricIndex ? (el) => el?.scrollIntoView({ behavior: 'smooth', block: 'center' }) : null}
-                        >
-                          <p
-                            className={`text-sm transition-all duration-300 ${
-                              idx === currentLyricIndex
-                                ? 'text-white font-semibold scale-105'
-                                : idx < currentLyricIndex
-                                  ? 'text-white/40'
-                                  : 'text-white/60'
-                            }`}
-                          >
-                            {line.words}
-                          </p>
-                        </div>
-                      ))}
+                  <div className="space-y-1 shrink-0 w-full min-w-0">
+                    <ProgressBar progress={progress} auraColor={auraColor} />
+                    <div className="flex justify-between gap-2 text-xs text-white/40 font-mono min-w-0">
+                      <span className="min-w-0 truncate tabular-nums">{formatDuration(getPlaybackMs())}</span>
+                      <span className="shrink-0 tabular-nums">{formatDuration(nowPlaying.duration_ms)}</span>
                     </div>
                   </div>
-                )}
+
+                  {nowPlaying.lyrics?.lines && (
+                    <div className="mt-4 pt-4 border-t border-white/10 flex w-full min-w-0 max-w-full flex-col overflow-hidden max-h-[min(10rem,min(24vh,32dvh))]">
+                      <p className="text-xs font-semibold uppercase tracking-widest text-white/40 mb-2 shrink-0 text-center">Lyrics</p>
+                      <div className="no-scrollbar min-h-0 flex-1 overflow-y-auto overflow-x-hidden overscroll-contain scroll-smooth rounded-md px-0.5">
+                        <div className="space-y-2 whitespace-normal [overflow-wrap:anywhere] break-words text-center">
+                          {nowPlaying.lyrics.lines.map((line, idx) => (
+                            <div
+                              key={idx}
+                              ref={idx === currentLyricIndex ? (el) => el?.scrollIntoView({ behavior: 'smooth', block: 'center' }) : null}
+                            >
+                              <p
+                                className={`max-w-full transition-all duration-300 leading-snug [overflow-wrap:anywhere] ${
+                                  idx === currentLyricIndex
+                                    ? 'text-white font-semibold text-[clamp(0.8125rem,0.85vw+0.5rem,0.9375rem)]'
+                                    : idx < currentLyricIndex
+                                      ? 'text-white/40 text-[clamp(0.75rem,0.65vw+0.45rem,0.8125rem)]'
+                                      : 'text-white/60 text-[clamp(0.75rem,0.65vw+0.45rem,0.8125rem)]'
+                                }`}
+                              >
+                                {line.words}
+                              </p>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
               </div>
-            </>
+            </div>
           )}
         </div>
 
         <div
-          className="hidden lg:flex w-1 flex-shrink-0 cursor-col-resize items-center justify-center border-white/10 bg-white/5 hover:bg-white/10 transition-colors group"
-          onMouseDown={handleResizeStart}
-          role="separator"
-          aria-label="Resize panels"
-        >
-          <GripVertical className="h-5 w-5 text-white/40 group-hover:text-white/60" />
-        </div>
-
-        <div
+          ref={displayRightRef}
           data-display-right
-          className="flex flex-col flex-1 min-w-0 lg:w-[var(--right-pct)] border-t lg:border-t-0 lg:border-l border-white/10"
+          className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden border-t border-white/10 sm:border-t-0 sm:border-l sm:border-white/10"
         >
-          <div className="flex-1 min-h-0 flex flex-col p-6 lg:p-10 pb-0">
-            <p className="text-xs font-semibold uppercase tracking-widest text-white/40 mb-4">
+          <div className="flex min-h-0 flex-1 flex-col overflow-hidden p-6 sm:p-10 pb-0">
+            <p className="mb-4 shrink-0 text-xs font-semibold uppercase tracking-widest text-white/40">
               Up Next
             </p>
             {upNext.length === 0 ? (
-              <div className="flex-1 flex items-center justify-center text-white/30 text-sm">
+              <div className="flex min-h-0 flex-1 items-center justify-center text-sm text-white/30">
                 Queue is empty
               </div>
             ) : (
-              <div className="flex-1 min-h-0 overflow-hidden space-y-1">
-                {upNext.map((track, i) => {
-                  const netVotes = votes[track.id] ?? 0
-                  return (
-                    <div
-                      key={`${track.id}-${i}`}
-                      className="flex items-center gap-3 p-2 rounded-xl hover:bg-white/5 transition-colors"
-                    >
-                      <span className="text-white/30 text-sm w-5 text-right shrink-0">{i + 1}</span>
-                      <AlbumArt src={track.album_art} alt={track.album} size="sm" />
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium truncate">{track.name}</p>
-                        <p className="text-xs text-white/50 truncate">{track.artists}</p>
-                      </div>
-                      {votingEnabled && track.votable && netVotes !== 0 && (
-                        <div className={cn('flex items-center gap-1 shrink-0', netVotes > 0 ? 'text-green-400' : 'text-red-400')}>
-                          {netVotes > 0 ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
-                          <span className="text-xs font-semibold">{netVotes}</span>
+              <div className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden overscroll-contain scroll-pb-6 [scrollbar-gutter:stable]">
+                <div className="w-full min-w-0 space-y-1 pb-14 pt-0.5">
+                  {upNext.map((track, i) => {
+                    const netVotes = votes[track.id] ?? 0
+                    return (
+                      <div
+                        key={`${track.id}-${i}`}
+                        className="flex items-start gap-2 sm:gap-3 p-2 rounded-xl hover:bg-white/5 transition-colors"
+                      >
+                        <span className="text-white/30 text-sm w-5 text-right shrink-0 pt-0.5">{i + 1}</span>
+                        <AlbumArt src={track.album_art} alt={track.album} size="sm" />
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium leading-snug line-clamp-2 [overflow-wrap:anywhere] break-words">
+                            {track.name}
+                          </p>
+                          <p className="text-xs text-white/50 mt-0.5 leading-snug line-clamp-2 [overflow-wrap:anywhere] break-words">
+                            {track.artists}
+                          </p>
                         </div>
-                      )}
-                      <span className="text-xs text-white/30 font-mono shrink-0">
-                        {formatDuration(track.duration_ms)}
-                      </span>
-                    </div>
-                  )
-                })}
+                        {votingEnabled && track.votable && netVotes !== 0 && (
+                          <div className={cn('flex items-center gap-1 shrink-0 pt-0.5', netVotes > 0 ? 'text-green-400' : 'text-red-400')}>
+                            {netVotes > 0 ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
+                            <span className="text-xs font-semibold">{netVotes}</span>
+                          </div>
+                        )}
+                        <span className="text-xs text-white/30 font-mono shrink-0 tabular-nums self-center whitespace-nowrap">
+                          {formatDuration(track.duration_ms)}
+                        </span>
+                      </div>
+                    )
+                  })}
+                </div>
               </div>
             )}
           </div>
 
           {appUrl && (
             <>
-              <div
-                className="flex h-1 flex-shrink-0 cursor-row-resize items-center justify-center bg-white/5 hover:bg-white/10 transition-colors group"
-                onMouseDown={handleQrResizeStart}
-                role="separator"
-                aria-label="Resize QR section"
-              >
-                <GripHorizontal className="h-4 w-4 text-white/40 group-hover:text-white/60" />
+              <div className="relative z-20 flex h-px flex-shrink-0 flex-col">
+                <div
+                  role="separator"
+                  aria-orientation="horizontal"
+                  aria-label="Resize QR section"
+                  className="absolute inset-x-0 -top-2 -bottom-2 z-10 cursor-row-resize touch-none"
+                  onPointerDown={handleQrResizePointerDown}
+                />
+                <div className="relative z-0 flex h-px w-full flex-shrink-0 items-center justify-center border-t border-white/10 bg-white/5">
+                  <GripHorizontal className="h-3.5 w-3.5 text-white/40 pointer-events-none" />
+                </div>
               </div>
               <div
-                className="flex shrink-0 items-stretch gap-4 overflow-hidden px-6 lg:px-10 py-4 border-t border-white/10 min-h-[100px]"
+                className="flex min-h-[100px] shrink-0 items-stretch gap-4 overflow-hidden border-t border-white/10 px-6 py-4 sm:px-10"
                 style={{ flex: `0 0 ${qrSize}%` }}
               >
                 <QrCodeScaled value={appUrl} />
@@ -495,7 +504,7 @@ export default function Display() {
                   </p>
                   <p
                     className="text-white/40 mt-1.5 break-all leading-snug"
-                    style={{ fontSize: 'clamp(0.75rem, 6cqi + 0.45rem, 3.5rem)' }}
+                    style={{ fontSize: 'clamp(0.75rem, 3.5cqi + 0.4rem, 1.125rem)' }}
                   >
                     {appUrl}
                   </p>
@@ -506,7 +515,7 @@ export default function Display() {
         </div>
       </div>
 
-      <div className="flex items-center justify-between px-8 py-3 border-t border-white/10 bg-black/20 shrink-0">
+      <div className="relative flex items-center justify-between px-6 sm:px-8 py-3 border-t border-white/10 bg-gray-950/95 backdrop-blur-sm shrink-0">
         <div className="flex items-center gap-2">
           <Music className="h-4 w-4 text-green-400" />
           <span className="text-sm font-semibold tracking-tight">SpotiQueue</span>
